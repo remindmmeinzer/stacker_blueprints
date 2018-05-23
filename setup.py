@@ -9,7 +9,7 @@ install_requires = [
     # Hope to remove lock on python-dateutil someday
     "python-dateutil==2.6.1",
     "stacker>=1.0.1",
-    "troposphere>=1.9.5",
+    "troposphere>=2.2.2",
     "awacs>=0.6.0",
 ]
 
