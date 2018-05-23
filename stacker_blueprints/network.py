@@ -1,7 +1,8 @@
 from troposphere import (
+    Join,
+    NoValue,
     Output,
     Tags,
-    NoValue,
 )
 from troposphere import ec2
 
@@ -113,11 +114,20 @@ class Network(Blueprint):
         t.add_output(Output("NetworkType", Value=self.network_type))
         t.add_output(Output("CidrBlock", Value=self.cidr_block))
 
-        attrs = ["AvailabilityZone", "Ipv6CidrBlocks", "NetworkAssociationId",
-                 "VpcId"]
+        attrs = ["AvailabilityZone", "NetworkAclAssociationId", "VpcId"]
 
         for attr in attrs:
             t.add_output(Output(attr, Value=self.subnet.GetAtt(attr)))
+
+        list_attrs = ["Ipv6CidrBlocks"]
+
+        for attr in list_attrs:
+            t.add_output(
+                Output(
+                    attr,
+                    Value=Join(",", self.subnet.GetAtt(attr))
+                )
+            )
 
     def create_route_table(self):
         t = self.template
