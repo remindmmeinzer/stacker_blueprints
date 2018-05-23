@@ -18,17 +18,22 @@
         }, 
         "Ipv6CidrBlocks": {
             "Value": {
-                "Fn::GetAtt": [
-                    "Subnet", 
-                    "Ipv6CidrBlocks"
+                "Fn::Join": [
+                    ",", 
+                    {
+                        "Fn::GetAtt": [
+                            "Subnet", 
+                            "Ipv6CidrBlocks"
+                        ]
+                    }
                 ]
             }
         }, 
-        "NetworkAssociationId": {
+        "NetworkAclAssociationId": {
             "Value": {
                 "Fn::GetAtt": [
                     "Subnet", 
-                    "NetworkAssociationId"
+                    "NetworkAclAssociationId"
                 ]
             }
         }, 

@@ -18,9 +18,14 @@
         }, 
         "Ipv6CidrBlocks": {
             "Value": {
-                "Fn::GetAtt": [
-                    "Subnet", 
-                    "Ipv6CidrBlocks"
+                "Fn::Join": [
+                    ",", 
+                    {
+                        "Fn::GetAtt": [
+                            "Subnet", 
+                            "Ipv6CidrBlocks"
+                        ]
+                    }
                 ]
             }
         }, 
@@ -42,11 +47,11 @@
                 "Ref": "NatGateway"
             }
         }, 
-        "NetworkAssociationId": {
+        "NetworkAclAssociationId": {
             "Value": {
                 "Fn::GetAtt": [
                     "Subnet", 
-                    "NetworkAssociationId"
+                    "NetworkAclAssociationId"
                 ]
             }
         }, 
