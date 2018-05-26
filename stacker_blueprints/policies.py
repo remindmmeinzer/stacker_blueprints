@@ -15,12 +15,13 @@ from troposphere import (
 )
 
 from awacs import (
-    sts,
-    s3,
-    logs,
-    ec2,
-    dynamodb,
     cloudwatch,
+    dynamodb,
+    kinesis,
+    ec2,
+    logs,
+    s3,
+    sts,
 )
 
 
@@ -138,6 +139,53 @@ def static_website_bucket_policy(bucket):
             )
         ]
     )
+
+
+def read_only_kinesis_stream_policy_statements(stream_arns):
+    return [
+        Statement(
+            Effect=Allow,
+            Action=[
+                kinesis.DescribeStream,
+                kinesis.Action("Get*"),
+            ],
+            Resource=stream_arns
+        ),
+        Statement(
+            Effect=Allow,
+            Action=[kinesis.ListStreams],
+            Resource=['*']
+        ),
+    ]
+
+
+def read_write_kinesis_stream_policy_statements(stream_arns):
+    statements = [
+        Statement(
+            Effect=Allow,
+            Action=[
+                kinesis.PutRecord,
+                kinesis.PutRecords,
+            ],
+            Resource=stream_arns
+        ),
+    ]
+    return read_only_kinesis_stream_policy_statements(stream_arns) + statements
+
+
+def read_only_kinesis_stream_policy(stream_arns):
+    return Policy(Statement=read_only_kinesis_stream_policy_statements(
+        stream_arns))
+
+
+def read_write_kinesis_stream_policy(stream_arns):
+    return Policy(Statement=read_write_kinesis_stream_policy_statements(
+        stream_arns))
+
+
+def kinesis_stream_arn(stream_id):
+    return Sub("arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:"
+               "stream/${Stream}", Stream=stream_id)
 
 
 def log_stream_arn(log_group_name, log_stream_name):
