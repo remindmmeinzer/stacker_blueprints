@@ -13,7 +13,7 @@ install_requires = [
 tests_require = [
     "nose",
     "mock~=2.0.0",
-    "stacker>=1.1.1",
+    "stacker>=1.4.0",
 ]
 
 
