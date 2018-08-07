@@ -164,7 +164,9 @@ class SimpleFargateService(Blueprint):
             return NoValue
 
         env_list = []
-        for k, v in env_dict.items():
+        # Sort it first to avoid dict sort issues on different machines
+        sorted_env = sorted(env_dict.items(), key=lambda pair: pair[0])
+        for k, v in sorted_env:
             env_list.append(ecs.Environment(Name=str(k), Value=str(v)))
 
         return env_list
@@ -370,7 +372,9 @@ class SimpleECSService(Blueprint):
             return NoValue
 
         env_list = []
-        for k, v in env_dict.items():
+        # Sort it first to avoid dict sort issues on different machines
+        sorted_env = sorted(env_dict.items(), key=lambda pair: pair[0])
+        for k, v in sorted_env:
             env_list.append(ecs.Environment(Name=str(k), Value=str(v)))
 
         return env_list

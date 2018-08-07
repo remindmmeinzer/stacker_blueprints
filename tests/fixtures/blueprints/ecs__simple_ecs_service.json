@@ -86,12 +86,12 @@
                         "Cpu": 1024, 
                         "Environment": [
                             {
-                                "Name": "DEBUG", 
-                                "Value": "false"
-                            }, 
-                            {
                                 "Name": "DATABASE_URL", 
                                 "Value": "sql://fake_db/fake_db"
+                            }, 
+                            {
+                                "Name": "DEBUG", 
+                                "Value": "false"
                             }
                         ], 
                         "Essential": "true", 
