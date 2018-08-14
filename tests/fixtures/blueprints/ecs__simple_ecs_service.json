@@ -68,6 +68,9 @@
                 "Cluster": "fake-fargate-cluster", 
                 "DesiredCount": 3, 
                 "LaunchType": "EC2", 
+                "NetworkConfiguration": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "ServiceName": "WorkerService", 
                 "TaskDefinition": {
                     "Ref": "TaskDefinition"
@@ -97,7 +100,14 @@
                         "Essential": "true", 
                         "Image": "fake_repo/image:12345", 
                         "LogConfiguration": {
-                            "Ref": "AWS::NoValue"
+                            "LogDriver": "awslogs", 
+                            "Options": {
+                                "awslogs-group": "WorkerService", 
+                                "awslogs-region": {
+                                    "Ref": "AWS::Region"
+                                }, 
+                                "awslogs-stream-prefix": "WorkerService"
+                            }
                         }, 
                         "Memory": 2048, 
                         "Name": "WorkerService"
@@ -106,6 +116,9 @@
                 "Cpu": "1024", 
                 "Family": "WorkerService", 
                 "Memory": "2048", 
+                "NetworkMode": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "TaskRoleArn": {
                     "Fn::GetAtt": [
                         "Role", 
