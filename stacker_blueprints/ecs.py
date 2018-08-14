@@ -85,6 +85,50 @@ class BaseECSService(Blueprint):
             "description": "An optional role to run the task as.",
             "default": "",
         },
+        "ContainerPort": {
+            "type": int,
+            "description": "The port of the container to expose to the "
+                           "network.  Defaults to not exposing any ports.",
+            "default": 0,
+        },
+        "HostPort": {
+            "type": int,
+            "description": "The host port to bind to the container port, if "
+                           "ContainerPort is specified. If not, does "
+                           "nothing. If HostPort is not specified, a dynamic "
+                           "port mapping will be used.",
+            "default": 0,
+        },
+        "ContainerProtocol": {
+            "type": str,
+            "description": "If set, must be either tcp or udp. Requires that "
+                           "ContainerPort is set as well. Default: tcp",
+            "default": "",
+        },
+        "DeploymentConfiguration": {
+            "type": TroposphereType(
+                ecs.DeploymentConfiguration,
+                optional=True
+            ),
+            "description": "An optional DeploymentConfiguration object.",
+            "default": None,
+        },
+        "LoadBalancers": {
+            "type": TroposphereType(
+                ecs.LoadBalancer,
+                many=True,
+                optional=True
+            ),
+            "description": "An optional list of LoadBalancers to attach to "
+                           "the service.",
+            "default": None,
+        },
+        "HealthCheckGracePeriodSeconds": {
+            "type": int,
+            "description": "An optional grace period for load balancer health "
+                           "checks against the service when it starts up.",
+            "default": 0,
+        },
 
     }
 
@@ -160,6 +204,52 @@ class BaseECSService(Blueprint):
     def network_configuration(self):
         return NoValue
 
+    @property
+    def container_port(self):
+        return self.get_variables()["ContainerPort"]
+
+    @property
+    def host_port(self):
+        if not self.container_port:
+            raise ValueError("Must specify ContainerPort if specifying "
+                             "HostPort")
+        return self.get_variables()["HostPort"]
+
+    @property
+    def container_protocol(self):
+        if not self.container_port:
+            raise ValueError("Must specify ContainerPort if specifying "
+                             "ContainerProtocol")
+        return self.get_variables()["ContainerProtocol"]
+
+    @property
+    def container_port_mappings(self):
+        mappings = NoValue
+        if self.container_port:
+            kwargs = {"ContainerPort": self.container_port}
+            if self.host_port:
+                kwargs["HostPort"] = self.host_port
+            if self.container_protocol:
+                kwargs["Protocol"] = self.container_protocol
+            mappings = [ecs.PortMapping(**kwargs)]
+        return mappings
+
+    @property
+    def deployment_configuration(self):
+        return self.get_variables()["DeploymentConfiguration"] or NoValue
+
+    @property
+    def load_balancers(self):
+        return self.get_variables()["LoadBalancers"] or NoValue
+
+    @property
+    def health_check_grace_period_seconds(self):
+        grace_period = self.get_variables()["HealthCheckGracePeriodSeconds"]
+        if grace_period and self.load_balancers is NoValue:
+            raise ValueError("Cannot specify HealthCheckGracePeriodSeconds "
+                             "without specifying LoadBalancers")
+        return grace_period or NoValue
+
     def create_task_role(self):
         if self.task_role_arn:
             self.add_output("RoleArn", self.task_role_arn)
@@ -209,6 +299,7 @@ class BaseECSService(Blueprint):
             LogConfiguration=self.log_configuration,
             Memory=self.memory,
             Name=self.service_name,
+            PortMappings=self.container_port_mappings,
         )
 
     def generate_task_definition_kwargs(self):
@@ -237,12 +328,16 @@ class BaseECSService(Blueprint):
 
     def create_service(self):
         t = self.template
+        grace_period = self.health_check_grace_period_seconds
         self.service = t.add_resource(
             ecs.Service(
                 "Service",
                 Cluster=self.cluster,
+                DeploymentConfiguration=self.deployment_configuration,
                 DesiredCount=self.count,
+                HealthCheckGracePeriodSeconds=grace_period,
                 LaunchType=self.launch_type,
+                LoadBalancers=self.load_balancers,
                 NetworkConfiguration=self.network_configuration,
                 ServiceName=self.service_name,
                 TaskDefinition=self.task_definition.Ref(),

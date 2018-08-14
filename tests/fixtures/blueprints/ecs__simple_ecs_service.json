@@ -66,8 +66,17 @@
         "Service": {
             "Properties": {
                 "Cluster": "fake-fargate-cluster", 
+                "DeploymentConfiguration": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "DesiredCount": 3, 
+                "HealthCheckGracePeriodSeconds": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "LaunchType": "EC2", 
+                "LoadBalancers": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "NetworkConfiguration": {
                     "Ref": "AWS::NoValue"
                 }, 
@@ -110,7 +119,10 @@
                             }
                         }, 
                         "Memory": 2048, 
-                        "Name": "WorkerService"
+                        "Name": "WorkerService", 
+                        "PortMappings": {
+                            "Ref": "AWS::NoValue"
+                        }
                     }
                 ], 
                 "Cpu": "1024", 
