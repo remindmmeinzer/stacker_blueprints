@@ -165,7 +165,10 @@ class Ec2Role(RoleBaseBlueprint):
             )
 
             t.add_output(
-                Output("InstanceProfileArn", Value=GetAtt(instance_profile.title, "Arn"))
+                Output(
+                    "InstanceProfileArn",
+                    Value=GetAtt(instance_profile.title, "Arn")
+                )
             )
 
         self.roles.append(role)
