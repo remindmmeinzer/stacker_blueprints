@@ -1,31 +1,75 @@
 ---
+
+task_variables: &task_variables
+  TaskName: mytask
+  Image: fake_repo/image:12345
+  Command: ["/bin/run", "--args 1"]
+  CPU: 1024
+  Memory: 2048
+  Environment:
+    DATABASE_URL: sql://fake_db/fake_db
+    DEBUG: "false"
+
+app_variables: &app_variables
+  AppName: myapp
+  Cluster: mycluster
+  Count: 3
+  
 namespace: test
 stacks:
-  - name: ecs__simple_fargate_service
-    class_path: stacker_blueprints.ecs.SimpleFargateService
+  - name: ecs__cluster
+    class_path: stacker_blueprints.ecs.Cluster
+
+  - name: ecs__base_ecs_task_defaults
+    class_path: stacker_blueprints.ecs.BaseECSTask
     variables:
-      ServiceName: WorkerService
-      Image: fake_repo/image:12345
-      Command: ["/bin/run", "--args 1"]
-      Cluster: fake-fargate-cluster
-      CPU: 1024
-      Memory: 2048
-      Count: 3
+      << : *task_variables
+  - name: ecs__base_ecs_task_container_port
+    class_path: stacker_blueprints.ecs.BaseECSTask
+    variables:
+      << : *task_variables
+      TaskRoleArn: arn:blah
+      ContainerPort: 80
+  - name: ecs__base_ecs_task_full_network_config
+    class_path: stacker_blueprints.ecs.BaseECSTask
+    variables:
+      << : *task_variables
+      TaskRoleArn: arn:blah
+      ContainerPort: 80
+      HostPort: 8000
+      ContainerProtocol: udp
+
+  - name: ecs__base_ecs_app_defaults
+    class_path: stacker_blueprints.ecs.BaseECSApp
+    variables:
+      << : *task_variables
+      << : *app_variables
+  - name: ecs__base_ecs_app_deployment_config
+    class_path: stacker_blueprints.ecs.BaseECSApp
+    variables:
+      << : *task_variables
+      << : *app_variables
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+  - name: ecs__base_ecs_app_load_balancers
+    class_path: stacker_blueprints.ecs.BaseECSApp
+    variables:
+      << : *task_variables
+      << : *app_variables
+      ContainerPort: 8000
+      LoadBalancerTargetGroupArns:
+        - arn:lb-1
+        - arn:lb-2
+      HealthCheckGracePeriodSeconds: 300
+
+  - name: ecs__simple_fargate_app
+    class_path: stacker_blueprints.ecs.SimpleFargateApp
+    variables:
+      << : *task_variables
+      << : *app_variables
       Subnets: ["net-123456", "net-5678910"]
       SecurityGroup: sg-abc1234
-      Environment:
-        DATABASE_URL: sql://fake_db/fake_db
-        DEBUG: "false"
-  - name: ecs__simple_ecs_service
-    class_path: stacker_blueprints.ecs.SimpleECSService
-    variables:
-      ServiceName: WorkerService
-      Image: fake_repo/image:12345
-      Command: ["/bin/run", "--args 1"]
-      Cluster: fake-fargate-cluster
-      CPU: 1024
-      Memory: 2048
-      Count: 3
       Environment:
         DATABASE_URL: sql://fake_db/fake_db
         DEBUG: "false"

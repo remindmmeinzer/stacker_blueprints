@@ -21,19 +21,6 @@
                 "Ref": "Role"
             }
         }, 
-        "ServiceArn": {
-            "Value": {
-                "Ref": "Service"
-            }
-        }, 
-        "ServiceName": {
-            "Value": {
-                "Fn::GetAtt": [
-                    "Service", 
-                    "Name"
-                ]
-            }
-        }, 
         "TaskDefinitionArn": {
             "Value": {
                 "Ref": "TaskDefinition"
@@ -63,30 +50,6 @@
             }, 
             "Type": "AWS::IAM::Role"
         }, 
-        "Service": {
-            "Properties": {
-                "Cluster": "fake-fargate-cluster", 
-                "DeploymentConfiguration": {
-                    "Ref": "AWS::NoValue"
-                }, 
-                "DesiredCount": 3, 
-                "HealthCheckGracePeriodSeconds": {
-                    "Ref": "AWS::NoValue"
-                }, 
-                "LaunchType": "EC2", 
-                "LoadBalancers": {
-                    "Ref": "AWS::NoValue"
-                }, 
-                "NetworkConfiguration": {
-                    "Ref": "AWS::NoValue"
-                }, 
-                "ServiceName": "WorkerService", 
-                "TaskDefinition": {
-                    "Ref": "TaskDefinition"
-                }
-            }, 
-            "Type": "AWS::ECS::Service"
-        }, 
         "TaskDefinition": {
             "Properties": {
                 "ContainerDefinitions": [
@@ -111,23 +74,26 @@
                         "LogConfiguration": {
                             "LogDriver": "awslogs", 
                             "Options": {
-                                "awslogs-group": "WorkerService", 
+                                "awslogs-group": "mytask", 
                                 "awslogs-region": {
                                     "Ref": "AWS::Region"
                                 }, 
-                                "awslogs-stream-prefix": "WorkerService"
+                                "awslogs-stream-prefix": "mytask"
                             }
                         }, 
                         "Memory": 2048, 
-                        "Name": "WorkerService", 
+                        "Name": "mytask", 
                         "PortMappings": {
                             "Ref": "AWS::NoValue"
                         }
                     }
                 ], 
-                "Cpu": "1024", 
-                "Family": "WorkerService", 
-                "Memory": "2048", 
+                "Cpu": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "Memory": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "NetworkMode": {
                     "Ref": "AWS::NoValue"
                 }, 

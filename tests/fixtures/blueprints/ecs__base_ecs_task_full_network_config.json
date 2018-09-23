@@ -1,0 +1,69 @@
+{
+    "Outputs": {
+        "RoleArn": {
+            "Value": "arn:blah"
+        }, 
+        "TaskDefinitionArn": {
+            "Value": {
+                "Ref": "TaskDefinition"
+            }
+        }
+    }, 
+    "Resources": {
+        "TaskDefinition": {
+            "Properties": {
+                "ContainerDefinitions": [
+                    {
+                        "Command": [
+                            "/bin/run", 
+                            "--args 1"
+                        ], 
+                        "Cpu": 1024, 
+                        "Environment": [
+                            {
+                                "Name": "DATABASE_URL", 
+                                "Value": "sql://fake_db/fake_db"
+                            }, 
+                            {
+                                "Name": "DEBUG", 
+                                "Value": "false"
+                            }
+                        ], 
+                        "Essential": "true", 
+                        "Image": "fake_repo/image:12345", 
+                        "LogConfiguration": {
+                            "LogDriver": "awslogs", 
+                            "Options": {
+                                "awslogs-group": "mytask", 
+                                "awslogs-region": {
+                                    "Ref": "AWS::Region"
+                                }, 
+                                "awslogs-stream-prefix": "mytask"
+                            }
+                        }, 
+                        "Memory": 2048, 
+                        "Name": "mytask", 
+                        "PortMappings": [
+                            {
+                                "ContainerPort": 80, 
+                                "HostPort": 8000, 
+                                "Protocol": "udp"
+                            }
+                        ]
+                    }
+                ], 
+                "Cpu": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "Memory": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "NetworkMode": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "TaskRoleArn": "arn:blah"
+            }, 
+            "Type": "AWS::ECS::TaskDefinition"
+        }
+    }
+}

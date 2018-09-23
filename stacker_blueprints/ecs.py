@@ -28,11 +28,11 @@ class Cluster(Blueprint):
         t.add_output(Output("ClusterArn", Value=cluster.GetAtt("Arn")))
 
 
-class BaseECSService(Blueprint):
+class BaseECSTask(Blueprint):
     VARIABLES = {
-        "ServiceName": {
+        "TaskName": {
             "type": str,
-            "description": "A simple name for the service.",
+            "description": "A name for the task/process.",
         },
         "Image": {
             "type": str,
@@ -46,11 +46,6 @@ class BaseECSService(Blueprint):
                            "image.",
             "default": [],
         },
-        "Cluster": {
-            "type": str,
-            "description": "The name or Amazon Resource Name (ARN) of the "
-                           "ECS cluster that you want to run your tasks on.",
-        },
         "CPU": {
             "type": int,
             "description": "The relative CPU shares used by each instance of "
@@ -61,10 +56,10 @@ class BaseECSService(Blueprint):
             "description": "The amount of memory (in megabytes) to reserve "
                            "for each instance of the task.",
         },
-        "Count": {
-            "type": int,
-            "description": "The number of instances of the task to create.",
-            "default": 1,
+        "NetworkMode": {
+            "type": str,
+            "description": "The NetworkMode to use in the task definition.",
+            "default": "",
         },
         "Environment": {
             "type": dict,
@@ -105,36 +100,11 @@ class BaseECSService(Blueprint):
                            "ContainerPort is set as well. Default: tcp",
             "default": "",
         },
-        "DeploymentConfiguration": {
-            "type": TroposphereType(
-                ecs.DeploymentConfiguration,
-                optional=True
-            ),
-            "description": "An optional DeploymentConfiguration object.",
-            "default": None,
-        },
-        "LoadBalancers": {
-            "type": TroposphereType(
-                ecs.LoadBalancer,
-                many=True,
-                optional=True
-            ),
-            "description": "An optional list of LoadBalancers to attach to "
-                           "the service.",
-            "default": None,
-        },
-        "HealthCheckGracePeriodSeconds": {
-            "type": int,
-            "description": "An optional grace period for load balancer health "
-                           "checks against the service when it starts up.",
-            "default": 0,
-        },
-
     }
 
     @property
-    def service_name(self):
-        return self.get_variables()["ServiceName"]
+    def task_name(self):
+        return self.get_variables()["TaskName"]
 
     @property
     def image(self):
@@ -145,20 +115,20 @@ class BaseECSService(Blueprint):
         return self.get_variables()["Command"] or NoValue
 
     @property
-    def cluster(self):
-        return self.get_variables()["Cluster"]
-
-    @property
     def cpu(self):
         return self.get_variables()["CPU"]
+
+    @property
+    def task_definition_cpu(self):
+        return NoValue
 
     @property
     def memory(self):
         return self.get_variables()["Memory"]
 
     @property
-    def count(self):
-        return self.get_variables()["Count"]
+    def task_definition_memory(self):
+        return NoValue
 
     @property
     def environment(self):
@@ -175,15 +145,19 @@ class BaseECSService(Blueprint):
         return env_list
 
     @property
+    def log_group_name(self):
+        return self.task_name
+
+    @property
     def log_configuration(self):
         log_config = self.get_variables()["LogConfiguration"]
         if not log_config:
             log_config = ecs.LogConfiguration(
                 LogDriver="awslogs",
                 Options={
-                    "awslogs-group": self.service_name,
+                    "awslogs-group": self.log_group_name,
                     "awslogs-region": Region,
-                    "awslogs-stream-prefix": self.service_name,
+                    "awslogs-stream-prefix": self.task_name,
                 }
             )
         return log_config
@@ -194,15 +168,7 @@ class BaseECSService(Blueprint):
 
     @property
     def network_mode(self):
-        return NoValue
-
-    @property
-    def launch_type(self):
-        return "EC2"
-
-    @property
-    def network_configuration(self):
-        return NoValue
+        return self.get_variables()["NetworkMode"] or NoValue
 
     @property
     def container_port(self):
@@ -210,17 +176,19 @@ class BaseECSService(Blueprint):
 
     @property
     def host_port(self):
-        if not self.container_port:
+        host_port = self.get_variables()["HostPort"]
+        if host_port and not self.container_port:
             raise ValueError("Must specify ContainerPort if specifying "
                              "HostPort")
-        return self.get_variables()["HostPort"]
+        return host_port
 
     @property
     def container_protocol(self):
-        if not self.container_port:
+        container_protocol = self.get_variables()["ContainerProtocol"]
+        if container_protocol and not self.container_port:
             raise ValueError("Must specify ContainerPort if specifying "
                              "ContainerProtocol")
-        return self.get_variables()["ContainerProtocol"]
+        return container_protocol
 
     @property
     def container_port_mappings(self):
@@ -235,20 +203,8 @@ class BaseECSService(Blueprint):
         return mappings
 
     @property
-    def deployment_configuration(self):
-        return self.get_variables()["DeploymentConfiguration"] or NoValue
-
-    @property
-    def load_balancers(self):
-        return self.get_variables()["LoadBalancers"] or NoValue
-
-    @property
-    def health_check_grace_period_seconds(self):
-        grace_period = self.get_variables()["HealthCheckGracePeriodSeconds"]
-        if grace_period and self.load_balancers is NoValue:
-            raise ValueError("Cannot specify HealthCheckGracePeriodSeconds "
-                             "without specifying LoadBalancers")
-        return grace_period or NoValue
+    def container_name(self):
+        return self.task_name
 
     def create_task_role(self):
         if self.task_role_arn:
@@ -298,7 +254,7 @@ class BaseECSService(Blueprint):
             Image=self.image,
             LogConfiguration=self.log_configuration,
             Memory=self.memory,
-            Name=self.service_name,
+            Name=self.container_name,
             PortMappings=self.container_port_mappings,
         )
 
@@ -306,9 +262,8 @@ class BaseECSService(Blueprint):
         task_role_arn = self.task_role_arn or self.task_role.GetAtt("Arn")
 
         return {
-            "Cpu": str(self.cpu),
-            "Family": self.service_name,
-            "Memory": str(self.memory),
+            "Cpu": self.task_definition_cpu,
+            "Memory": self.task_definition_memory,
             "NetworkMode": self.network_mode,
             "TaskRoleArn": task_role_arn,
             "ContainerDefinitions": [self.generate_container_definition()],
@@ -326,77 +281,33 @@ class BaseECSService(Blueprint):
 
         self.add_output("TaskDefinitionArn", self.task_definition.Ref())
 
-    def create_service(self):
-        t = self.template
-        grace_period = self.health_check_grace_period_seconds
-        self.service = t.add_resource(
-            ecs.Service(
-                "Service",
-                Cluster=self.cluster,
-                DeploymentConfiguration=self.deployment_configuration,
-                DesiredCount=self.count,
-                HealthCheckGracePeriodSeconds=grace_period,
-                LaunchType=self.launch_type,
-                LoadBalancers=self.load_balancers,
-                NetworkConfiguration=self.network_configuration,
-                ServiceName=self.service_name,
-                TaskDefinition=self.task_definition.Ref(),
-            )
-        )
-
-        self.add_output("ServiceArn", self.service.Ref())
-        self.add_output("ServiceName", self.service.GetAtt("Name"))
-
     def create_template(self):
         self.create_task_role()
         self.create_task_role_policy()
         self.create_task_definition()
-        self.create_service()
 
 
-class SimpleFargateService(BaseECSService):
-    def defined_variables(self):
-        variables = super(SimpleFargateService, self).defined_variables()
+class SimpleECSTask(BaseECSTask):
+    pass
 
-        additional_variables = {
-            "Subnets": {
-                "type": list,
-                "description": "The list of VPC subnets to deploy the task "
-                               "in.",
-            },
-            "SecurityGroup": {
-                "type": str,
-                "description": "The SecurityGroup to attach to the task.",
-            },
-        }
 
-        variables.update(additional_variables)
-        return variables
-
-    @property
-    def subnets(self):
-        return self.get_variables()["Subnets"]
-
-    @property
-    def security_group(self):
-        return self.get_variables()["SecurityGroup"]
-
+class SimpleFargateTask(BaseECSTask):
     @property
     def network_mode(self):
+        network_mode = self.get_variables()["NetworkMode"]
+        if network_mode and network_mode != "awsvpc":
+            raise ValueError("Fargate services should not set NetworkMode "
+                             "('awsvpc' is the only valid mode, and is set "
+                             "by default.)")
         return "awsvpc"
 
     @property
-    def launch_type(self):
-        return "FARGATE"
+    def task_definition_cpu(self):
+        return str(self.cpu)
 
     @property
-    def network_configuration(self):
-        return ecs.NetworkConfiguration(
-            AwsvpcConfiguration=ecs.AwsvpcConfiguration(
-                SecurityGroups=[self.security_group],
-                Subnets=self.subnets,
-            )
-        )
+    def task_definition_memory(self):
+        return str(self.memory)
 
     def create_task_execution_role(self):
         t = self.template
@@ -446,17 +357,203 @@ class SimpleFargateService(BaseECSService):
 
     def generate_task_definition_kwargs(self):
         kwargs = super(
-            SimpleFargateService, self
+            SimpleFargateTask, self
         ).generate_task_definition_kwargs()
-
+        kwargs['RequiresCompatibilities'] = ['FARGATE']
         kwargs["ExecutionRoleArn"] = self.task_execution_role.GetAtt("Arn")
         return kwargs
 
     def create_template(self):
         self.create_task_execution_role()
         self.create_task_execution_role_policy()
-        super(SimpleFargateService, self).create_template()
+        super(SimpleFargateTask, self).create_template()
 
 
-class SimpleECSService(BaseECSService):
+class BaseECSApp(BaseECSTask):
+    """ Combines an ECS Task with an ECS Service for a simple App. """
+    def defined_variables(self):
+        variables = super(BaseECSApp, self).defined_variables()
+
+        extra_vars = {
+            "AppName": {
+                "type": str,
+                "description": "A simple name for the application.",
+            },
+            "Cluster": {
+                "type": str,
+                "description": "The name or Amazon Resource Name (ARN) of the "
+                               "ECS cluster that you want to run your tasks "
+                               "on.",
+            },
+            "Count": {
+                "type": int,
+                "description": "The number of instances of the task to "
+                               "create.",
+                "default": 1,
+            },
+            "DeploymentConfiguration": {
+                "type": TroposphereType(
+                    ecs.DeploymentConfiguration,
+                    optional=True
+                ),
+                "description": "An optional DeploymentConfiguration object.",
+                "default": None,
+            },
+            "PlacementConstraints": {
+                "type": TroposphereType(
+                    ecs.PlacementConstraint,
+                    optional=True,
+                    many=True,
+                ),
+                "description": "An optional list of PlacementConstraint "
+                               "objects.",
+                "default": None,
+            },
+            "LoadBalancerTargetGroupArns": {
+                "type": list,
+                "description": "A list of load balancer target group arns "
+                               "to attach to the container. Requires that "
+                               "the ContainerPort be set.",
+                "default": [],
+            },
+            "HealthCheckGracePeriodSeconds": {
+                "type": int,
+                "description": "An optional grace period for load balancer "
+                               "health checks against the service when it "
+                               "starts up.",
+                "default": 0,
+            },
+        }
+
+        variables.update(extra_vars)
+        return variables
+
+    @property
+    def app_name(self):
+        return self.get_variables()["AppName"]
+
+    @property
+    def cluster(self):
+        return self.get_variables()["Cluster"]
+
+    @property
+    def count(self):
+        return self.get_variables()["Count"]
+
+    @property
+    def deployment_configuration(self):
+        return self.get_variables()["DeploymentConfiguration"] or NoValue
+
+    @property
+    def placement_constraints(self):
+        return self.get_variables()["PlacementConstraints"] or NoValue
+
+    @property
+    def load_balancer_target_group_arns(self):
+        arns = self.get_variables()["LoadBalancerTargetGroupArns"]
+        if arns and not self.container_port:
+            raise ValueError("Must specify ContainerPort if specifying "
+                             "LoadBalancerTargetGroupArns")
+        return arns
+
+    def generate_load_balancers(self):
+        load_balancers = []
+        for arn in self.load_balancer_target_group_arns:
+            load_balancers.append(
+                ecs.LoadBalancer(
+                    ContainerName=self.container_name,
+                    ContainerPort=self.container_port,
+                    TargetGroupArn=arn,
+                )
+            )
+        return load_balancers or NoValue
+
+    @property
+    def health_check_grace_period_seconds(self):
+        grace_period = self.get_variables()["HealthCheckGracePeriodSeconds"]
+        if grace_period and self.generate_load_balancers() is NoValue:
+            raise ValueError("Cannot specify HealthCheckGracePeriodSeconds "
+                             "without specifying LoadBalancers")
+        return grace_period or NoValue
+
+    @property
+    def launch_type(self):
+        return "EC2"
+
+    @property
+    def network_configuration(self):
+        return NoValue
+
+    @property
+    def log_group_name(self):
+        return self.app_name
+
+    def create_service(self):
+        t = self.template
+        grace_period = self.health_check_grace_period_seconds
+        self.service = t.add_resource(
+            ecs.Service(
+                "Service",
+                Cluster=self.cluster,
+                DeploymentConfiguration=self.deployment_configuration,
+                DesiredCount=self.count,
+                HealthCheckGracePeriodSeconds=grace_period,
+                LaunchType=self.launch_type,
+                LoadBalancers=self.generate_load_balancers(),
+                NetworkConfiguration=self.network_configuration,
+                PlacementConstraints=self.placement_constraints,
+                TaskDefinition=self.task_definition.Ref(),
+            )
+        )
+
+        self.add_output("ServiceArn", self.service.Ref())
+        self.add_output("ServiceName", self.service.GetAtt("Name"))
+
+    def create_template(self):
+        super(BaseECSApp, self).create_template()
+        self.create_service()
+
+
+class SimpleFargateApp(BaseECSApp, SimpleFargateTask):
+    def defined_variables(self):
+        variables = super(SimpleFargateApp, self).defined_variables()
+
+        additional_variables = {
+            "Subnets": {
+                "type": list,
+                "description": "The list of VPC subnets to deploy the task "
+                               "in.",
+            },
+            "SecurityGroup": {
+                "type": str,
+                "description": "The SecurityGroup to attach to the task.",
+            },
+        }
+
+        variables.update(additional_variables)
+        return variables
+
+    @property
+    def subnets(self):
+        return self.get_variables()["Subnets"]
+
+    @property
+    def security_group(self):
+        return self.get_variables()["SecurityGroup"]
+
+    @property
+    def launch_type(self):
+        return "FARGATE"
+
+    @property
+    def network_configuration(self):
+        return ecs.NetworkConfiguration(
+            AwsvpcConfiguration=ecs.AwsvpcConfiguration(
+                SecurityGroups=[self.security_group],
+                Subnets=self.subnets,
+            )
+        )
+
+
+class SimpleECSApp(BaseECSApp):
     pass
