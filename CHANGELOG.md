@@ -1,3 +1,20 @@
+## 1.0.8 (2018-09-23)
+
+- Kinesis streams blueprint [GH-1]
+- simple network blueprint [GH-2]
+- YAML tests [GH-5]
+- Support Route53 RecordSetGroups [GH-6]
+- Add ECR Policies [GH-8]
+- Generic EC2 Security Group Blueprint [GH-9]
+- EC2 Role Blueprint [GH-22]
+- ACM Certificates blueprint [GH-24]
+- ECS blueprints [GH-30]
+- Add EFS Blueprint [GH-129]
+- simple ec2 instance blueprint [GH-164]
+- replace get\_fqn instances with AWS::StackName [GH-165]
+- DynamoDB Autoscaling blueprint [GH-167]
+- New Stripped down vpc blueprint [GH-170]
+
 ## 1.0.7 (2018-02-11)
 
 - FlexibleAutoScalingGroup blueprint [GH-156]
