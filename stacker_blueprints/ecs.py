@@ -245,17 +245,24 @@ class BaseECSTask(Blueprint):
 
         self.add_output("ManagedPolicyArn", self.task_role_policy.Ref())
 
+    def generate_container_definition_kwargs(self):
+        kwargs = {
+            "Command": self.command,
+            "Cpu": self.cpu,
+            "Environment": self.environment,
+            "Essential": True,
+            "Image": self.image,
+            "LogConfiguration": self.log_configuration,
+            "Memory": self.memory,
+            "Name": self.container_name,
+            "PortMappings": self.container_port_mappings,
+        }
+
+        return kwargs
+
     def generate_container_definition(self):
         return ecs.ContainerDefinition(
-            Command=self.command,
-            Cpu=self.cpu,
-            Environment=self.environment,
-            Essential=True,
-            Image=self.image,
-            LogConfiguration=self.log_configuration,
-            Memory=self.memory,
-            Name=self.container_name,
-            PortMappings=self.container_port_mappings,
+            **self.generate_container_definition_kwargs()
         )
 
     def generate_task_definition_kwargs(self):
@@ -488,22 +495,27 @@ class BaseECSApp(BaseECSTask):
     def log_group_name(self):
         return self.app_name
 
+    def generate_service_kwargs(self):
+        grace_period = self.health_check_grace_period_seconds
+
+        config = {
+            "Cluster": self.cluster,
+            "DeploymentConfiguration": self.deployment_configuration,
+            "DesiredCount": self.count,
+            "HealthCheckGracePeriodSeconds": grace_period,
+            "LaunchType": self.launch_type,
+            "LoadBalancers": self.generate_load_balancers(),
+            "NetworkConfiguration": self.network_configuration,
+            "PlacementConstraints": self.placement_constraints,
+            "TaskDefinition": self.task_definition.Ref(),
+        }
+
+        return config
+
     def create_service(self):
         t = self.template
-        grace_period = self.health_check_grace_period_seconds
         self.service = t.add_resource(
-            ecs.Service(
-                "Service",
-                Cluster=self.cluster,
-                DeploymentConfiguration=self.deployment_configuration,
-                DesiredCount=self.count,
-                HealthCheckGracePeriodSeconds=grace_period,
-                LaunchType=self.launch_type,
-                LoadBalancers=self.generate_load_balancers(),
-                NetworkConfiguration=self.network_configuration,
-                PlacementConstraints=self.placement_constraints,
-                TaskDefinition=self.task_definition.Ref(),
-            )
+            ecs.Service("Service", **self.generate_service_kwargs())
         )
 
         self.add_output("ServiceArn", self.service.Ref())
