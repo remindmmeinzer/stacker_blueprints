@@ -15,10 +15,6 @@ class Network(Blueprint):
             "type": str,
             "description": "The Id of the VPC to create the network in.",
         },
-        "VpcDefaultSecurityGroup": {
-            "type": str,
-            "description": "The default security group in the VPC.",
-        },
         "InternetGatewayId": {
             "type": str,
             "description": "If defined, this network will be a public "
@@ -62,10 +58,6 @@ class Network(Blueprint):
     @property
     def vpc_id(self):
         return self.get_variables()["VpcId"]
-
-    @property
-    def default_security_group(self):
-        return self.get_variables()["VpcDefaultSecurityGroup"]
 
     @property
     def network_type(self):
