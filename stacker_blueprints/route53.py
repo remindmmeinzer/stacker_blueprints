@@ -169,7 +169,7 @@ class DNSRecords(Blueprint):
         """Accept list of record_set_group dicts.
         Return list of record_set_group objects."""
         record_set_groups = []
-        for name, group in record_set_group_dicts.iteritems():
+        for name, group in record_set_group_dicts.items():
             # pop removes the 'Enabled' key and tests if True.
             if group.pop('Enabled', True):
                 record_set_groups.append(

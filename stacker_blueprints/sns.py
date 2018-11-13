@@ -53,7 +53,7 @@ def validate_topic(topic):
 
 def validate_topics(topics):
     validated_topics = {}
-    for topic_name, topic_config in topics.iteritems():
+    for topic_name, topic_config in topics.items():
         validated_topics[topic_name] = validate_topic(topic_config)
 
     return validated_topics
@@ -75,7 +75,7 @@ class Topics(Blueprint):
     def create_template(self):
         variables = self.get_variables()
 
-        for topic_name, topic_config in variables["Topics"].iteritems():
+        for topic_name, topic_config in variables["Topics"].items():
             self.create_topic(topic_name, topic_config)
 
     def create_sqs_policy(self, topic_name, topic_arn, topic_subs):
