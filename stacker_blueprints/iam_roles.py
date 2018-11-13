@@ -23,7 +23,7 @@ class RoleBaseBlueprint(Blueprint):
         self.policies = []
 
     def create_role(self, name, policy):
-        raise NotImplemented
+        raise NotImplementedError
 
     def create_ec2_role(self, name):
         return self.create_role(name, get_default_assumerole_policy())
