@@ -1,0 +1,23 @@
+---
+namespace: test
+stacks:
+  - name: rds_postgres_master_instance
+    class_path: stacker_blueprints.rds.postgres.MasterInstance
+    variables:
+      <<: &vars
+        EngineMajorVersion: "9.3"
+        DBFamily: postgres9.3
+        EngineVersion: 9.3.10
+        Subnets: subnet-1234,subnet-4321
+        VpcId: vpc-1234
+        DBInstanceIdentifier: db-id
+        DatabaseName: db
+        DatabaseParameters:
+          log_min_duration: 1000
+      MasterUser: root
+      MasterUserPassword: password
+  - name: rds_postgres_master_restore_snapshot
+    class_path: stacker_blueprints.rds.postgres.MasterInstance
+    variables:
+      <<: *vars
+      DBSnapshotIdentifier: rds:snapshot

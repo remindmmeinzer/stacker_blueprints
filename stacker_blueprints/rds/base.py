@@ -1,7 +1,7 @@
 import re
 
 from troposphere import (
-    Ref, ec2, Output, GetAtt, Tags
+    Ref, ec2, NoValue, Output, GetAtt, Tags
 )
 from troposphere.rds import (
     DBInstance, DBSubnetGroup, DBParameterGroup, OptionGroup,
@@ -13,7 +13,7 @@ from stacker.blueprints.variables.types import CFNString
 
 RDS_ENGINES = ["MySQL", "oracle-se1", "oracle-se", "oracle-ee", "sqlserver-ee",
                "sqlserver-se", "sqlserver-ex", "sqlserver-web", "postgres",
-               "aurora"]
+               "aurora", "aurora-mysql", "aurora-postgresql"]
 
 # Resource name constants
 SUBNET_GROUP = "RDSSubnetGroup"
@@ -197,11 +197,16 @@ class BaseRDS(Blueprint):
 
     def get_storage_type(self):
         variables = self.get_variables()
-        return variables["StorageType"] or Ref("AWS::NoValue")
+        return variables["StorageType"] or NoValue
 
     def get_db_snapshot_identifier(self):
         variables = self.get_variables()
-        return variables["DBSnapshotIdentifier"] or Ref("AWS::NoValue")
+        return variables["DBSnapshotIdentifier"] or NoValue
+
+    @property
+    def is_snapshot_restore(self):
+        variables = self.get_variables()
+        return bool(variables["DBSnapshotIdentifier"])
 
     def get_tags(self):
         variables = self.get_variables()
@@ -350,11 +355,13 @@ class MasterInstance(BaseRDS):
             "MasterUser": {
                 "type": str,
                 "description": "Name of the master user in the db.",
+                "default": ""
             },
             "MasterUserPassword": {
                 "type": CFNString,
                 "no_echo": True,
-                "description": "Master user password."
+                "description": "Master user password.",
+                "default": ""
             },
             "PreferredBackupWindow": {
                 "type": str,
@@ -365,7 +372,8 @@ class MasterInstance(BaseRDS):
             },
             "DatabaseName": {
                 "type": str,
-                "description": "Initial db to create in database."
+                "description": "Initial db to create in database.",
+                "default": ""
             },
             "MultiAZ": {
                 "type": bool,
@@ -399,6 +407,45 @@ class MasterInstance(BaseRDS):
         variables.update(additional)
         return variables
 
+    @property
+    def master_username(self):
+        variables = self.get_variables()
+
+        if self.is_snapshot_restore:
+            if variables["MasterUser"]:
+                raise TypeError("MasterUser should be empty when restoring "
+                                "from a snapshot.")
+            return NoValue
+
+        if not variables["MasterUser"]:
+            raise TypeError("MasterUser should only be empty when restoring"
+                            "from a snapshot.")
+
+        return variables["MasterUser"]
+
+    @property
+    def master_user_password(self):
+        variables = self.get_variables()
+
+        if self.is_snapshot_restore:
+            if variables["MasterUserPassword"].value:
+                raise TypeError("MasterUserPassword should be empty when "
+                                "restoring from a snapshot.")
+            return NoValue
+
+        if not variables["MasterUserPassword"].value:
+            raise TypeError("MasterUserPassword should only be empty when "
+                            "restoring from a snapshot.")
+
+        return variables["MasterUserPassword"].ref
+
+    @property
+    def database_name(self):
+        variables = self.get_variables()
+        if self.is_snapshot_restore:
+            return NoValue
+        return variables.get("DatabaseName")
+
     def get_common_attrs(self):
         variables = self.get_variables()
         return {
@@ -406,7 +453,7 @@ class MasterInstance(BaseRDS):
             "AllowMajorVersionUpgrade": variables["AllowMajorVersionUpgrade"],
             "AutoMinorVersionUpgrade": variables["AutoMinorVersionUpgrade"],
             "BackupRetentionPeriod": variables["BackupRetentionPeriod"],
-            "DBName": variables["DatabaseName"],
+            "DBName": self.database_name,
             "DBInstanceClass": variables["InstanceType"],
             "DBInstanceIdentifier": (
                 variables["DBInstanceIdentifier"]
@@ -421,9 +468,9 @@ class MasterInstance(BaseRDS):
             "Engine": self.engine() or variables["Engine"],
             "EngineVersion": variables["EngineVersion"],
             # NoValue for now
-            "LicenseModel": Ref("AWS::NoValue"),
-            "MasterUsername": variables["MasterUser"],
-            "MasterUserPassword": Ref("MasterUserPassword"),
+            "LicenseModel": NoValue,
+            "MasterUsername": self.master_username,
+            "MasterUserPassword": self.master_user_password,
             "MultiAZ": variables["MultiAZ"],
             "OptionGroupName": Ref("OptionGroup"),
             "PreferredBackupWindow": variables["PreferredBackupWindow"],
@@ -521,6 +568,6 @@ class ClusterInstance(BaseRDS):
             "DBSnapshotIdentifier": self.get_db_snapshot_identifier(),
             "DBParameterGroupName": Ref("ParameterGroup"),
             "Engine": self.engine() or variables["Engine"],
-            "LicenseModel": Ref("AWS::NoValue"),
+            "LicenseModel": NoValue,
             "Tags": self.get_tags(),
         }

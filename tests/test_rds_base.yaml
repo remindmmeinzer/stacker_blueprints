@@ -1,0 +1,13 @@
+---
+namespace: test
+stacks:
+  - name: rds_base_cluster_instance
+    class_path: stacker_blueprints.rds.base.ClusterInstance
+    variables:
+      DBClusterIdentifier: cluster
+      Engine: aurora
+      DBFamily: postgres9.3
+      Subnets: subnet-1234,subnet-4321
+      VpcId: vpc-1234
+      DBInstanceIdentifier: db-id
+      MonitoringRoleArn: external-role-arn::arn1

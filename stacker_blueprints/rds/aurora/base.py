@@ -248,39 +248,40 @@ class Cluster(Blueprint):
             )
 
     def create_cluster(self):
-        t = self.template
+        self.template.add_resource(self.cluster)
+
+    @property
+    def cluster(self):
         variables = self.get_variables()
-        parameter_group = NoValue
         if variables["ClusterParameters"]:
             parameter_group = Ref(PARAMETER_GROUP)
+        else:
+            parameter_group = "default.%s" % variables["DBFamily"]
 
         engine_version = variables["EngineVersion"] or NoValue
         database_name = variables["DatabaseName"] or NoValue
 
         replication_source_arn = variables["ReplicationSourceArn"] or NoValue
 
-        t.add_resource(
-            DBCluster(
-                DBCLUSTER,
-                DeletionPolicy="Snapshot",
-                BackupRetentionPeriod=variables["BackupRetentionPeriod"],
-                DBClusterParameterGroupName=parameter_group,
-                DBSubnetGroupName=Ref(SUBNET_GROUP),
-                Engine=self.engine() or variables["Engine"],
-                EngineVersion=engine_version,
-                MasterUsername=self.get_master_user(),
-                MasterUserPassword=self.get_master_user_password(),
-                DatabaseName=database_name,
-                Port=variables["Port"] or self.port(),
-                PreferredBackupWindow=variables["PreferredBackupWindow"],
-                PreferredMaintenanceWindow=variables[
-                    "PreferredMaintenanceWindow"],
-                SnapshotIdentifier=self.get_snapshot_identifier(),
-                Tags=self.get_tags(),
-                VpcSecurityGroupIds=[self.security_group],
-                StorageEncrypted=self.get_storage_encrypted(),
-                ReplicationSourceIdentifier=replication_source_arn,
-            )
+        return DBCluster(
+            DBCLUSTER,
+            DeletionPolicy="Snapshot",
+            BackupRetentionPeriod=variables["BackupRetentionPeriod"],
+            DBClusterParameterGroupName=parameter_group,
+            DBSubnetGroupName=Ref(SUBNET_GROUP),
+            Engine=self.engine() or variables["Engine"],
+            EngineVersion=engine_version,
+            MasterUsername=self.get_master_user(),
+            MasterUserPassword=self.get_master_user_password(),
+            DatabaseName=database_name,
+            Port=variables["Port"] or self.port(),
+            PreferredBackupWindow=variables["PreferredBackupWindow"],
+            PreferredMaintenanceWindow=variables["PreferredMaintenanceWindow"],
+            SnapshotIdentifier=self.get_snapshot_identifier(),
+            Tags=self.get_tags(),
+            VpcSecurityGroupIds=[self.security_group],
+            StorageEncrypted=self.get_storage_encrypted(),
+            ReplicationSourceIdentifier=replication_source_arn,
         )
 
     def create_dns_records(self):
@@ -349,6 +350,14 @@ class Cluster(Blueprint):
 class AuroraCluster(Cluster):
     def engine(self):
         return "aurora"
+
+    def port(self):
+        return 3306
+
+
+class AuroraMysqlCluster(Cluster):
+    def engine(self):
+        return "aurora-mysql"
 
     def port(self):
         return 3306

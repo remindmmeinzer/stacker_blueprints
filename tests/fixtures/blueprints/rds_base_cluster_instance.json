@@ -1,0 +1,68 @@
+{
+    "Outputs": {
+        "DBAddress": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "RDSDBInstance", 
+                    "Endpoint.Address"
+                ]
+            }
+        }, 
+        "DBInstance": {
+            "Value": {
+                "Ref": "RDSDBInstance"
+            }
+        }, 
+        "SecurityGroup": {
+            "Value": {
+                "Ref": "RDSSecurityGroup"
+            }
+        }
+    }, 
+    "Resources": {
+        "ParameterGroup": {
+            "Properties": {
+                "Description": "rds_base_cluster_instance", 
+                "Family": "postgres9.3", 
+                "Parameters": {}
+            }, 
+            "Type": "AWS::RDS::DBParameterGroup"
+        }, 
+        "RDSDBInstance": {
+            "Properties": {
+                "AllowMajorVersionUpgrade": "false", 
+                "AutoMinorVersionUpgrade": "false", 
+                "DBClusterIdentifier": "cluster", 
+                "DBInstanceClass": "db.m3.large", 
+                "DBInstanceIdentifier": "db-id", 
+                "DBParameterGroupName": {
+                    "Ref": "ParameterGroup"
+                }, 
+                "DBSnapshotIdentifier": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "Engine": "aurora", 
+                "LicenseModel": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "StorageType": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "Tags": [
+                    {
+                        "Key": "Name", 
+                        "Value": "rds_base_cluster_instance"
+                    }
+                ]
+            }, 
+            "Type": "AWS::RDS::DBInstance"
+        }, 
+        "RDSSecurityGroup": {
+            "Properties": {
+                "GroupDescription": "rds_base_cluster_instance RDS security group", 
+                "VpcId": "vpc-1234"
+            }, 
+            "Type": "AWS::EC2::SecurityGroup"
+        }
+    }
+}

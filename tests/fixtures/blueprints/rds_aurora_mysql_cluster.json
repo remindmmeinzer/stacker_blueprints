@@ -1,0 +1,109 @@
+{
+    "Outputs": {
+        "Cluster": {
+            "Value": {
+                "Ref": "DBCluster"
+            }
+        }, 
+        "MasterEndpoint": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DBCluster", 
+                    "Endpoint.Address"
+                ]
+            }
+        }, 
+        "Port": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DBCluster", 
+                    "Endpoint.Port"
+                ]
+            }
+        }, 
+        "ReadEndpoint": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DBCluster", 
+                    "ReadEndpoint.Address"
+                ]
+            }
+        }, 
+        "SecurityGroup": {
+            "Value": {
+                "Ref": "SecurityGroup"
+            }
+        }, 
+        "SubnetGroup": {
+            "Value": {
+                "Ref": "SubnetGroup"
+            }
+        }
+    }, 
+    "Parameters": {
+        "MasterUserPassword": {
+            "Default": "", 
+            "Description": "Master user password.", 
+            "NoEcho": true, 
+            "Type": "String"
+        }
+    }, 
+    "Resources": {
+        "DBCluster": {
+            "DeletionPolicy": "Snapshot", 
+            "Properties": {
+                "BackupRetentionPeriod": 7, 
+                "DBClusterParameterGroupName": "default.aurora-mysql5.7", 
+                "DBSubnetGroupName": {
+                    "Ref": "SubnetGroup"
+                }, 
+                "DatabaseName": "db", 
+                "Engine": "aurora-mysql", 
+                "EngineVersion": "5.7.12", 
+                "MasterUserPassword": {
+                    "Ref": "MasterUserPassword"
+                }, 
+                "MasterUsername": "root", 
+                "Port": 3306, 
+                "PreferredBackupWindow": "12:00-13:00", 
+                "PreferredMaintenanceWindow": "Sun:11:00-Sun:12:00", 
+                "ReplicationSourceIdentifier": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "SnapshotIdentifier": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "StorageEncrypted": "true", 
+                "Tags": [
+                    {
+                        "Key": "Name", 
+                        "Value": "rds_aurora_mysql_cluster"
+                    }
+                ], 
+                "VpcSecurityGroupIds": [
+                    {
+                        "Ref": "SecurityGroup"
+                    }
+                ]
+            }, 
+            "Type": "AWS::RDS::DBCluster"
+        }, 
+        "SecurityGroup": {
+            "Properties": {
+                "GroupDescription": "rds_aurora_mysql_cluster RDS security group", 
+                "VpcId": "vpc-1234"
+            }, 
+            "Type": "AWS::EC2::SecurityGroup"
+        }, 
+        "SubnetGroup": {
+            "Properties": {
+                "DBSubnetGroupDescription": "rds_aurora_mysql_cluster VPC subnet group.", 
+                "SubnetIds": [
+                    "subnet-1234", 
+                    "subnet-4321"
+                ]
+            }, 
+            "Type": "AWS::RDS::DBSubnetGroup"
+        }
+    }
+}

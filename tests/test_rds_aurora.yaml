@@ -1,0 +1,36 @@
+---
+namespace: test
+stacks:
+  - name: rds_aurora_base_cluster
+    class_path: stacker_blueprints.rds.aurora.AuroraCluster
+    variables:
+      Engine: aurora
+      DBFamily: postgres9.3
+      EngineVersion: 9.3.10
+      Subnets: subnet-1234,subnet-4321
+      VpcId: vpc-1234
+      MasterUser: root
+      MasterUserPassword: password
+      DatabaseName: db
+  - name: rds_aurora_base_cluster_restore_snapshot
+    class_path: stacker_blueprints.rds.aurora.AuroraCluster
+    variables:
+      Engine: aurora
+      DBFamily: postgres9.3
+      EngineVersion: 9.3.10
+      Subnets: subnet-1234,subnet-4321
+      VpcId: vpc-1234
+      MasterUser: not-used
+      MasterUserPassword: unused-password
+      DatabaseName: db
+      SnapshotIdentifier: arn:aws:rds:us-east-1:0123456788901:cluster-snapshot:rds:my-snapshot
+  - name: rds_aurora_mysql_cluster
+    class_path: stacker_blueprints.rds.aurora.AuroraMysqlCluster
+    variables:
+      DBFamily: aurora-mysql5.7
+      EngineVersion: 5.7.12
+      Subnets: subnet-1234,subnet-4321
+      VpcId: vpc-1234
+      MasterUser: root
+      MasterUserPassword: password
+      DatabaseName: db
