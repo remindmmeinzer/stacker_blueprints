@@ -250,24 +250,21 @@ class AutoScaling(Blueprint):
                 )
                 self.scalable_targets[table_name]["write"] = st
 
-            self.scalable_targets[table_name]["indexes"] = []
+            self.scalable_targets[table_name]["indexes"] = {}
 
             for index_asc in table_asc.get("indexes", []):
 
                 index = index_asc["index"]
-
-                doc = {}
+                self.scalable_targets[table_name]["indexes"][index] = {}
 
                 if "read" in index_asc:
                     st = self.create_scalable_target_and_scaling_policy(
                         table_name, table_asc["read"], "read", index
                     )
-                    doc["read"] = st
+                    self.scalable_targets[table_name]["indexes"][index]["read"] = st # noqa
 
                 if "write" in index_asc:
                     st = self.create_scalable_target_and_scaling_policy(
                         table_name, table_asc["write"], "write", index
                     )
-                    doc["read"] = st
-
-                self.scalable_targets[table_name]["indexes"].append(doc)
+                    self.scalable_targets[table_name]["indexes"][index]["write"] = st # noqa
