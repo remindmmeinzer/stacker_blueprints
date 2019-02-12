@@ -135,31 +135,56 @@ class AutoScaling(Blueprint):
             )
         )
 
-    def create_scalable_target_and_scaling_policy(self, table, asc, capacity_type="read"): # noqa
+    def scalable_resource_name(self, resource, table, capacity_type, index=""):
+        camel_table = snake_to_camel_case(table)
+        camel_index = snake_to_camel_case(index)
+
+        name = "{}{}{}".format(
+            camel_table,
+            capacity_type,
+            resource,
+        )
+
+        if index:
+            name = "{}{}{}{}".format(
+                camel_table,
+                camel_index,
+                capacity_type,
+                resource,
+            )
+
+        return name
+
+    def create_scalable_target_and_scaling_policy(self, table, asc, capacity_type="read", index=""): # noqa
         capacity_type = capacity_type.title()
         if capacity_type not in ("Read", "Write"):
             raise Exception("capacity_type must be either `read` or `write`.")
 
         dimension = "dynamodb:table:{}CapacityUnits".format(capacity_type)
+        if index:
+            dimension = "dynamodb:index:{}CapacityUnits".format(capacity_type)
 
-        camel_table = snake_to_camel_case(table)
+        resource_id = "table/{}".format(table)
+        if index:
+            resource_id = "{}/index/{}".format(resource_id, index)
 
-        scalable_target_name = "{}{}ScalableTarget".format(
-            camel_table,
-            capacity_type,
+        scalable_target_name = self.scalable_resource_name(
+            "ScalableTarget", table, capacity_type, index
         )
 
         scalable_target = self.template.add_resource(
-           aas.ScalableTarget(
-              scalable_target_name,
-              MinCapacity=asc.get("min", 1),
-              MaxCapacity=asc.get("max", 1000),
-              ResourceId="table/{}".format(table),
-              RoleARN=self.iam_role_arn,
-              ScalableDimension=dimension,
-              ServiceNamespace="dynamodb"
-           )
+            aas.ScalableTarget(
+                scalable_target_name,
+                MinCapacity=asc.get("min", 1),
+                MaxCapacity=asc.get("max", 1000),
+                ResourceId=resource_id,
+                RoleARN=self.iam_role_arn,
+                ScalableDimension=dimension,
+                ServiceNamespace="dynamodb"
+            )
         )
+
+        self.scalable_targets[scalable_target_name] = scalable_target
 
         # https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html # noqa
         predefined_metric_spec = aas.PredefinedMetricSpecification(
@@ -175,13 +200,11 @@ class AutoScaling(Blueprint):
             PredefinedMetricSpecification=predefined_metric_spec,
         )
 
-        scaling_policy_name = "{}{}ScalablePolicy".format(
-            camel_table,
-            capacity_type,
-        )
-
-        # dynamodb only supports TargetTrackingScaling polcy type.
+        # dynamodb only supports TargetTrackingScaling policy type.
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html#cfn-applicationautoscaling-scalingpolicy-policytype # noqa
+        scaling_policy_name = self.scalable_resource_name(
+            "ScalablePolicy", table, capacity_type, index
+        )
         self.template.add_resource(
             aas.ScalingPolicy(
                 scaling_policy_name,
@@ -192,16 +215,39 @@ class AutoScaling(Blueprint):
             )
         )
 
+        return scalable_target
+
     def create_template(self):
         variables = self.get_variables()
         self.auto_scaling_configs = variables["AutoScalingConfigs"]
         self.tables = [config["table"] for config in self.auto_scaling_configs]
         self.iam_role = self.create_scaling_iam_role()
         self.iam_role_arn = GetAtt(self.iam_role, "Arn")
+        self.scalable_targets = {}
+
         for table_asc in self.auto_scaling_configs:
-            self.create_scalable_target_and_scaling_policy(
-                table_asc["table"], table_asc["read"], "read"
-            )
-            self.create_scalable_target_and_scaling_policy(
-                table_asc["table"], table_asc["write"], "write"
-            )
+
+            table_name = table_asc["table"]
+
+            if "read" in table_asc:
+                self.create_scalable_target_and_scaling_policy(
+                    table_name, table_asc["read"], "read"
+                )
+
+            if "write" in table_asc:
+                self.create_scalable_target_and_scaling_policy(
+                    table_name, table_asc["write"], "write"
+                )
+
+            if "indexes" in table_asc:
+                for index_asc in table_asc["indexes"]:
+
+                    index = index_asc["index"]
+
+                    self.create_scalable_target_and_scaling_policy(
+                        table_name, table_asc["read"], "read", index
+                    )
+
+                    self.create_scalable_target_and_scaling_policy(
+                        table_name, table_asc["write"], "write", index
+                    )
