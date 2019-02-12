@@ -99,6 +99,16 @@ class AutoScaling(Blueprint):
                 min: 5
                 max: 50
                 target: 80.0
+              indexes:
+                - index: index-test-user-table
+                  read:
+                    min: 5
+                    max: 100
+                    target: 75.0
+                  write:
+                    min: 5
+                    max: 50
+                    target: 80.0
 
             - table: test-group-table
               read:
@@ -184,8 +194,6 @@ class AutoScaling(Blueprint):
             )
         )
 
-        self.scalable_targets[scalable_target_name] = scalable_target
-
         # https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html # noqa
         predefined_metric_spec = aas.PredefinedMetricSpecification(
             PredefinedMetricType="DynamoDB{}CapacityUtilization".format(
@@ -228,26 +236,38 @@ class AutoScaling(Blueprint):
         for table_asc in self.auto_scaling_configs:
 
             table_name = table_asc["table"]
+            self.scalable_targets[table_name] = {}
 
             if "read" in table_asc:
-                self.create_scalable_target_and_scaling_policy(
+                st = self.create_scalable_target_and_scaling_policy(
                     table_name, table_asc["read"], "read"
                 )
+                self.scalable_targets[table_name]["read"] = st
 
             if "write" in table_asc:
-                self.create_scalable_target_and_scaling_policy(
+                st = self.create_scalable_target_and_scaling_policy(
                     table_name, table_asc["write"], "write"
                 )
+                self.scalable_targets[table_name]["write"] = st
 
-            if "indexes" in table_asc:
-                for index_asc in table_asc["indexes"]:
+            self.scalable_targets[table_name]["indexes"] = []
 
-                    index = index_asc["index"]
+            for index_asc in table_asc.get("indexes", []):
 
-                    self.create_scalable_target_and_scaling_policy(
+                index = index_asc["index"]
+
+                doc = {}
+
+                if "read" in index_asc:
+                    st = self.create_scalable_target_and_scaling_policy(
                         table_name, table_asc["read"], "read", index
                     )
+                    doc["read"] = st
 
-                    self.create_scalable_target_and_scaling_policy(
+                if "write" in index_asc:
+                    st = self.create_scalable_target_and_scaling_policy(
                         table_name, table_asc["write"], "write", index
                     )
+                    doc["read"] = st
+
+                self.scalable_targets[table_name]["indexes"].append(doc)
