@@ -15,25 +15,7 @@ from .policies import (
     dynamodb_autoscaling_policy,
 )
 
-
-# TODO: Factor out the below two functions, once this PR is merged:
-#  https://github.com/cloudtools/awacs/pull/93
-# from awacs.helpers.trust import get_application_autoscaling_assumerole_policy
-from awacs.helpers.trust import make_simple_assume_policy
-
-
-def make_service_domain_name(service, region=''):
-    """Helper function for creating proper service domain names."""
-    tld = ".com.cn" if region == "cn-north-1" else ".com"
-    return "{}.amazonaws{}".format(service, tld)
-
-
-def get_application_autoscaling_assumerole_policy(region=''):
-    """ Helper function for building the AWS Lambda AssumeRole Policy"""
-    service = make_service_domain_name('application-autoscaling', region)
-    return make_simple_assume_policy(service)
-
-# end of TODO.
+from awacs.helpers.trust import get_application_autoscaling_assumerole_policy
 
 
 def snake_to_camel_case(name):
