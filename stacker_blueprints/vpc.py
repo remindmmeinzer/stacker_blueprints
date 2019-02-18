@@ -5,7 +5,7 @@ This includes the VPC, it's subnets, availability zones, etc.
 
 from troposphere import (
     Ref, Output, Join, FindInMap, Select, GetAZs, Tags,
-    GetAtt, NoValue, Region
+    GetAtt, NoValue, Region, Sub
 )
 from troposphere import ec2, route53
 
@@ -75,7 +75,8 @@ class VPC(Blueprint):
             "default": False},
         "CreateDynamoEndpoint": {
             "type": bool,
-            "description": "Create an DynamoDB endpoint gateway for vpc access.",
+            "description": "Create an DynamoDB endpoint gateway for vpc "
+                           "access.",
             "default": False
         }
     }
@@ -405,7 +406,7 @@ class VPC(Blueprint):
                 DependsOn=GW_ATTACH
             )
         )
-    
+
     def create_s3_endpoint(self, route_table_ids):
         t = self.template
         variables = self.get_variables()
@@ -415,7 +416,7 @@ class VPC(Blueprint):
                     "s3VpcEndpoint",
                     RouteTableIds=route_table_ids,
                     VpcId=VPC_ID,
-                    ServiceName=Join("", ["com.amazonaws.", Ref("AWS::Region"), ".s3"]),
+                    ServiceName=Sub("com.amazonaws.${AWS::Region}.s3"),
                 )
             )
 
@@ -428,7 +429,7 @@ class VPC(Blueprint):
                     "dynamoVpcEndpoint",
                     RouteTableIds=route_table_ids,
                     VpcId=VPC_ID,
-                    ServiceName=Join("", ["com.amazonaws.", Ref("AWS::Region"), ".dynamodb"]),
+                    ServiceName=Sub("com.amazonaws.${AWS::Region}.dynamodb"),
                 )
             )
 
