@@ -69,6 +69,15 @@ class VPC(Blueprint):
             "description": "If using NAT Instances, the SSH key to install "
                            "on those instances.",
             "default": ""},
+        "CreateS3Endpoint": {
+            "type": bool,
+            "description": "Create an S3 endpoint gateway for vpc access.",
+            "default": False},
+        "CreateDynamoEndpoint": {
+            "type": bool,
+            "description": "Create an DynamoDB endpoint gateway for vpc access.",
+            "default": False
+        }
     }
 
     def create_vpc(self):
@@ -192,6 +201,7 @@ class VPC(Blueprint):
         self.create_nat_security_groups()
         subnets = {'public': [], 'private': []}
         net_types = subnets.keys()
+        route_table_ids = []
         zones = []
         for i in range(variables["AZCount"]):
             az = Select(i, GetAZs(""))
@@ -214,6 +224,7 @@ class VPC(Blueprint):
 
                 route_table_name = "%sRouteTable%s" % (name_prefix,
                                                        name_suffix)
+
                 t.add_resource(
                     ec2.RouteTable(
                         route_table_name,
@@ -221,6 +232,9 @@ class VPC(Blueprint):
                         Tags=[ec2.Tag('type', net_type)]
                     )
                 )
+
+                route_table_ids.append(Ref(route_table_name))
+
                 t.add_resource(
                     ec2.SubnetRouteTableAssociation(
                         "%sRouteTableAssociation%s" % (name_prefix,
@@ -231,6 +245,7 @@ class VPC(Blueprint):
                 )
 
                 route_name = '%sRoute%s' % (name_prefix, name_suffix)
+
                 if net_type == 'public':
                     # the public subnets are where the NAT instances live,
                     # so their default route needs to go to the AWS
@@ -290,6 +305,9 @@ class VPC(Blueprint):
                     Value=az
                 )
             )
+
+        self.create_s3_endpoint(route_table_ids)
+        self.create_dynamo_endpoint(route_table_ids)
 
     def create_nat_security_groups(self):
         t = self.template
@@ -387,6 +405,32 @@ class VPC(Blueprint):
                 DependsOn=GW_ATTACH
             )
         )
+    
+    def create_s3_endpoint(self, route_table_ids):
+        t = self.template
+        variables = self.get_variables()
+        if variables["CreateS3Endpoint"]:
+            t.add_resource(
+                ec2.VPCEndpoint(
+                    "s3VpcEndpoint",
+                    RouteTableIds=route_table_ids,
+                    VpcId=VPC_ID,
+                    ServiceName=Join("", ["com.amazonaws.", Ref("AWS::Region"), ".s3"]),
+                )
+            )
+
+    def create_dynamo_endpoint(self, route_table_ids):
+        t = self.template
+        variables = self.get_variables()
+        if variables["CreateDynamoEndpoint"]:
+            t.add_resource(
+                ec2.VPCEndpoint(
+                    "dynamoVpcEndpoint",
+                    RouteTableIds=route_table_ids,
+                    VpcId=VPC_ID,
+                    ServiceName=Join("", ["com.amazonaws.", Ref("AWS::Region"), ".dynamodb"]),
+                )
+            )
 
     def create_template(self):
         self.create_vpc()
