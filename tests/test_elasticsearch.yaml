@@ -1,0 +1,60 @@
+---
+namespace: test
+stacks:
+  - name: elasticsearch
+    class_path: stacker_blueprints.elasticsearch.Domain
+    variables:
+      VpcId: vpc-00001234
+      Subnets: subnet-0000aaaa,subnet-0000bbbb
+      CreateLinkedRole: true
+      InternalZoneId: zone-id
+      InternalZoneName: zone-name
+      InternalHostName: elasticsearch-cluster
+      AdvancedOptions:
+        option1: value1
+        option2: value2
+      ElasticsearchClusterConfig:
+        InstanceCount: 12
+        InstanceType: c5.xlarge
+      EncryptionAtRestKeyId: kms/key/alias/key1
+      Roles:
+        - role1
+        - role2
+  - name: elasticsearch_no_vpc
+    class_path: stacker_blueprints.elasticsearch.Domain
+    variables:
+      InternalZoneId: zone-id
+      InternalZoneName: zone-name
+      InternalHostName: elasticsearch-cluster
+      AdvancedOptions:
+        option1: value1
+        option2: value2
+      ElasticsearchClusterConfig:
+        InstanceCount: 12
+        InstanceType: c5.xlarge
+      EncryptionAtRestKeyId: kms/key/alias/key1
+      Roles:
+        - role1
+        - role2
+  - name: elasticsearch_existing_security_groups
+    class_path: stacker_blueprints.elasticsearch.Domain
+    variables:
+      VpcId: vpc-00001234
+      Subnets: subnet-0000aaaa,subnet-0000bbbb
+      CreateLinkedRole: true
+      SecurityGroups:
+        - sg-aaaabbbb
+        - sg-aaaacccc
+      InternalZoneId: zone-id
+      InternalZoneName: zone-name
+      InternalHostName: elasticsearch-cluster
+      AdvancedOptions:
+        option1: value1
+        option2: value2
+      ElasticsearchClusterConfig:
+        InstanceCount: 12
+        InstanceType: c5.xlarge
+      EncryptionAtRestKeyId: kms/key/alias/key1
+      Roles:
+        - role1
+        - role2

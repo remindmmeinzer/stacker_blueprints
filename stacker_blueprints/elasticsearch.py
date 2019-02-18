@@ -27,6 +27,7 @@ from awacs.aws import (
 )
 from stacker.blueprints.base import Blueprint
 from troposphere import (
+    ec2,
     elasticsearch,
     iam,
     route53,
@@ -38,7 +39,9 @@ from troposphere import (
 
 ES_DOMAIN = "ESDomain"
 DNS_RECORD = "ESDomainDNSRecord"
+LINKED_ROLE_NAME = "ESLinkedRole"
 POLICY_NAME = "ESDomainAccessPolicy"
+SECURITY_GROUP = "ESSecurityGroup"
 
 
 class Domain(Blueprint):
@@ -48,6 +51,12 @@ class Domain(Blueprint):
             "type": list,
             "description": (
                 "List of roles that should have access to the ES domain.")},
+        "CreateLinkedRole": {
+            "type": bool,
+            "default": False,
+            "description": (
+                "Whether to create an IAM Service Linked Role for "
+                "Elasticsearch.")},
         "InternalZoneId": {
             "type": str,
             "default": "",
@@ -86,8 +95,15 @@ class Domain(Blueprint):
             )},
         "ElasticsearchVersion": {
             "type": str,
-            "default": "2.3",
+            "default": "5.1",
             "description": "The version of Elasticsearch to use."},
+        "EncryptionAtRestKeyId": {
+            "type": str,
+            "default": "",
+            "description": (
+                "KMS Key id for encrypting at-rest. If specified, "
+                "ElasticsearchVersion must be 5.1 or greater (AWS "
+                "restriction).")},
         "SnapshotOptions": {
             "type": dict,
             "default": {},
@@ -95,6 +111,16 @@ class Domain(Blueprint):
                 "The automated snapshot configuration for the Amazon ES "
                 "domain indices."
             )},
+        "SecurityGroups": {
+            "type": list,
+            "default": [],
+            "description": (
+                "VPC security groups to add to the VPC configuration. If "
+                "empty, a security group will be created and output.")},
+        "Subnets": {
+            "type": str,
+            "default": "",
+            "description": "A comma separated list of subnet ids."},
         "Tags": {
             "type": list,
             "default": [],
@@ -108,6 +134,12 @@ class Domain(Blueprint):
                 "List of CIDR blocks allowed to connect to the ES cluster"
             ),
             "default": []},
+        "VpcId": {
+            "type": str,
+            "default": "",
+            "description": (
+                "Vpc id in which to create the security group. Only needed if "
+                "SecurityGroups is empty, for security group creation.")},
     }
 
     def get_allowed_actions(self):
@@ -116,6 +148,22 @@ class Domain(Blueprint):
             awacs.es.Action("ESHttpHead"),
             awacs.es.Action("ESHttpPost"),
             awacs.es.Action("ESHttpDelete")]
+
+    def create_security_group(self):
+        # Only create a security group if VpcId was specified but no security
+        # groups passed in
+        t = self.template
+        variables = self.get_variables()
+
+        if variables["VpcId"] and not variables["SecurityGroups"]:
+            t.add_resource(
+                ec2.SecurityGroup(
+                    SECURITY_GROUP,
+                    GroupDescription="Security group for ElasticSearch",
+                    VpcId=variables["VpcId"]
+                )
+            )
+            t.add_output(Output("SecurityGroup", Value=Ref(SECURITY_GROUP)))
 
     def create_dns_record(self):
         t = self.template
@@ -150,11 +198,33 @@ class Domain(Blueprint):
         if policy:
             params["AccessPolicies"] = policy
 
+        if variables["EncryptionAtRestKeyId"]:
+            if variables["ElasticsearchVersion"] < "5.1":
+                raise TypeError("Encryption at rest supported for ES versions "
+                                ">= 5.1")
+
+            params["EncryptionAtRestOptions"] = {
+                "Enabled": True,
+                "KmsKeyId": variables["EncryptionAtRestKeyId"],
+            }
+
+        if variables["Subnets"]:
+            if not variables["SecurityGroups"] and not variables["VpcId"]:
+                raise TypeError("If no security groups are passed, VpcId must "
+                                "be passed for security group creation.")
+
+            sgs = variables["SecurityGroups"] or [Ref(SECURITY_GROUP)]
+            params["VPCOptions"] = {
+                "SecurityGroupIds": sgs,
+                "SubnetIds": variables["Subnets"].split(","),
+            }
+
         # Add any optional keys to the params dict. ES didn't have great
         # support for passing empty values for these keys when this was
         # created.
         optional_keys = ["AdvancedOptions", "DomainName", "EBSOptions",
-                         "SnapshotOptions", "Tags"]
+                         "ElasticsearchClusterConfig", "SnapshotOptions",
+                         "Tags"]
 
         for key in optional_keys:
             optional = variables[key]
@@ -200,7 +270,21 @@ class Domain(Blueprint):
             policy = Policy(Statement=statements)
         return policy
 
+    def create_linked_role(self):
+        t = self.template
+        variables = self.get_variables()
+
+        if variables["CreateLinkedRole"]:
+            t.add_resource(
+                iam.ServiceLinkedRole(
+                    LINKED_ROLE_NAME,
+                    AWSServiceName="es.amazonaws.com"
+                )
+            )
+
     def create_template(self):
+        self.create_security_group()
+        self.create_linked_role()
         self.create_domain()
         self.create_dns_record()
         self.create_roles_policy()

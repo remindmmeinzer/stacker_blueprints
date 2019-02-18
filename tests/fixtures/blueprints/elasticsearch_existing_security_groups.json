@@ -1,0 +1,118 @@
+{
+    "Outputs": {
+        "CNAME": {
+            "Value": {
+                "Ref": "ESDomainDNSRecord"
+            }
+        },
+        "DomainArn": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ESDomain",
+                    "DomainArn"
+                ]
+            }
+        },
+        "DomainEndpoint": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ESDomain",
+                    "DomainEndpoint"
+                ]
+            }
+        }
+    },
+    "Resources": {
+        "ESDomain": {
+            "Properties": {
+                "AdvancedOptions": {
+                    "option1": "value1",
+                    "option2": "value2"
+                },
+                "ElasticsearchClusterConfig": {
+                    "InstanceCount": 12,
+                    "InstanceType": "c5.xlarge"
+                },
+                "ElasticsearchVersion": "5.1",
+                "EncryptionAtRestOptions": {
+                    "Enabled": "true",
+                    "KmsKeyId": "kms/key/alias/key1"
+                },
+                "VPCOptions": {
+                    "SecurityGroupIds": [
+                        "sg-aaaabbbb",
+                        "sg-aaaacccc"
+                    ],
+                    "SubnetIds": [
+                        "subnet-0000aaaa",
+                        "subnet-0000bbbb"
+                    ]
+                }
+            },
+            "Type": "AWS::Elasticsearch::Domain"
+        },
+        "ESDomainAccessPolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "es:ESHttpGet",
+                                "es:ESHttpHead",
+                                "es:ESHttpPost",
+                                "es:ESHttpDelete"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "/",
+                                        [
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "ESDomain",
+                                                    "DomainArn"
+                                                ]
+                                            },
+                                            "*"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "PolicyName": "ESDomainAccessPolicy",
+                "Roles": [
+                    "role1",
+                    "role2"
+                ]
+            },
+            "Type": "AWS::IAM::Policy"
+        },
+        "ESDomainDNSRecord": {
+            "Properties": {
+                "Comment": "ES Domain CNAME Record",
+                "HostedZoneId": "zone-id",
+                "Name": "elasticsearch-cluster.zone-name",
+                "ResourceRecords": [
+                    {
+                        "Fn::GetAtt": [
+                            "ESDomain",
+                            "DomainEndpoint"
+                        ]
+                    }
+                ],
+                "TTL": "120",
+                "Type": "CNAME"
+            },
+            "Type": "AWS::Route53::RecordSet"
+        },
+        "ESLinkedRole": {
+            "Properties": {
+                "AWSServiceName": "es.amazonaws.com"
+            },
+            "Type": "AWS::IAM::ServiceLinkedRole"
+        }
+    }
+}
