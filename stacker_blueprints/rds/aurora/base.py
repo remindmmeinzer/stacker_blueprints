@@ -330,6 +330,7 @@ class Cluster(Blueprint):
         )
         t.add_output(Output("Port", Value=self.get_port()))
         t.add_output(Output("Cluster", Value=Ref(DBCLUSTER)))
+        t.add_output(Output("ClusterArn", Value=GetAtt(DBCLUSTER, "Arn")))
         if self.should_create_internal_hostname():
             t.add_output(
                 Output("DBCname", Value=Ref(DNS_RECORD))

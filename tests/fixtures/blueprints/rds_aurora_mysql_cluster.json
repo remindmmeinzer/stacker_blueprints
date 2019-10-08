@@ -5,6 +5,14 @@
                 "Ref": "DBCluster"
             }
         }, 
+        "ClusterArn": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "DBCluster", 
+                    "Arn"
+                ]
+            }
+        }, 
         "MasterEndpoint": {
             "Value": {
                 "Fn::GetAtt": [
