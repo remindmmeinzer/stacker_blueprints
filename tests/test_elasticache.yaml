@@ -1,0 +1,16 @@
+namespace: test
+stacks:
+  - name: redis_cluster
+    class_path: stacker_blueprints.elasticache.redis.RedisReplicationGroup
+    variables:
+      VpcId: vpc-aaaabbbb
+      Subnets: subnet-00000001,subnet-00000002
+      AutoMinorVersionUpgrade: true
+      CacheNodeType: cache.r5.24xlarge
+      EngineVersion: 5.0.5
+      NumCacheClusters: 2
+      ParameterGroupFamily: redis5.0
+      SnapshotRetentionLimit: 0
+      InternalZoneId: ABCDEFGHI0
+      InternalZoneName: empire
+      InternalHostname: redis-cluster

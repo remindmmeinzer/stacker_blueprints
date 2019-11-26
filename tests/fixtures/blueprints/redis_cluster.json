@@ -1,0 +1,144 @@
+{
+    "Outputs": {
+        "ClusterId": {
+            "Value": {
+                "Ref": "ReplicationGroup"
+            }
+        }, 
+        "ClusterPort": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ReplicationGroup", 
+                    "PrimaryEndPoint.Port"
+                ]
+            }
+        }, 
+        "PrimaryAddress": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ReplicationGroup", 
+                    "PrimaryEndPoint.Address"
+                ]
+            }
+        }, 
+        "PrimaryCname": {
+            "Value": {
+                "Ref": "ReplicationGroupDnsRecord"
+            }
+        }, 
+        "ReadAddresses": {
+            "Value": {
+                "Fn::Join": [
+                    ",", 
+                    {
+                        "Fn::GetAtt": [
+                            "ReplicationGroup", 
+                            "ReadEndPoint.Addresses.List"
+                        ]
+                    }
+                ]
+            }
+        }, 
+        "SecurityGroup": {
+            "Value": {
+                "Ref": "SecurityGroup"
+            }
+        }
+    }, 
+    "Resources": {
+        "ParameterGroup": {
+            "Properties": {
+                "CacheParameterGroupFamily": "redis5.0", 
+                "Description": "redis_cluster", 
+                "Properties": {}
+            }, 
+            "Type": "AWS::ElastiCache::ParameterGroup"
+        }, 
+        "ReplicationGroup": {
+            "Properties": {
+                "AutoMinorVersionUpgrade": "true", 
+                "AutomaticFailoverEnabled": "true", 
+                "CacheNodeType": "cache.r5.24xlarge", 
+                "CacheParameterGroupName": {
+                    "Ref": "ParameterGroup"
+                }, 
+                "CacheSubnetGroupName": {
+                    "Ref": "SubnetGroup"
+                }, 
+                "Engine": "redis", 
+                "EngineVersion": "5.0.5", 
+                "NotificationTopicArn": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "NumCacheClusters": 2, 
+                "Port": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "PreferredCacheClusterAZs": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "PreferredMaintenanceWindow": "Sun:11:00-Sun:12:00", 
+                "ReplicationGroupDescription": "redis_cluster", 
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "SecurityGroup"
+                    }
+                ], 
+                "SnapshotArns": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "SnapshotRetentionLimit": {
+                    "Ref": "AWS::NoValue"
+                }, 
+                "SnapshotWindow": {
+                    "Ref": "AWS::NoValue"
+                }
+            }, 
+            "Type": "AWS::ElastiCache::ReplicationGroup"
+        }, 
+        "ReplicationGroupDnsRecord": {
+            "Properties": {
+                "Comment": "ReplicationGroup CNAME Record", 
+                "HostedZoneId": "ABCDEFGHI0", 
+                "Name": {
+                    "Fn::Join": [
+                        ".", 
+                        [
+                            "redis-cluster", 
+                            "empire"
+                        ]
+                    ]
+                }, 
+                "ResourceRecords": [
+                    {
+                        "Fn::GetAtt": [
+                            "ReplicationGroup", 
+                            "PrimaryEndPoint.Address"
+                        ]
+                    }
+                ], 
+                "TTL": "120", 
+                "Type": "CNAME"
+            }, 
+            "Type": "AWS::Route53::RecordSet"
+        }, 
+        "SecurityGroup": {
+            "Properties": {
+                "GroupDescription": "redis_cluster security group", 
+                "VpcId": "vpc-aaaabbbb"
+            }, 
+            "Type": "AWS::EC2::SecurityGroup"
+        }, 
+        "SubnetGroup": {
+            "Properties": {
+                "Description": "redis_cluster subnet group.", 
+                "SubnetIds": [
+                    "subnet-00000001", 
+                    "subnet-00000002"
+                ]
+            }, 
+            "Type": "AWS::ElastiCache::SubnetGroup"
+        }
+    }
+}
+
