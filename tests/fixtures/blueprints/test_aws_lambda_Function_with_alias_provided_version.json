@@ -78,6 +78,9 @@
                 }, 
                 "Handler": "handler", 
                 "KmsKeyArn": "arn:aws:kms:us-east-1:12345:key", 
+                "Layers": {
+                    "Ref": "AWS::NoValue"
+                }, 
                 "MemorySize": 128, 
                 "Role": {
                     "Fn::GetAtt": [

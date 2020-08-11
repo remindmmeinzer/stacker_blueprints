@@ -139,6 +139,12 @@ class Function(Blueprint):
                            "values.",
             "default": "",
         },
+        "LayerArns": {
+            "type": list,
+            "description": "A list of AWS Lambda Layer ARNs to include"
+                           "in the execution environment.",
+            "default": [],
+        },
         "MemorySize": {
             "type": int,
             "description": "The amount of memory, in MB, that is allocated "
@@ -217,6 +223,9 @@ class Function(Blueprint):
                 vpc_config['SubnetIds'] = vpc_config['SubnetIds'].split(',')
             config = awslambda.VPCConfig(**vpc_config)
         return config
+
+    def layer_arns(self):
+        return self.get_variables()["LayerArns"] or NoValue
 
     def add_policy_statements(self, statements):
         """Adds statements to the policy.
@@ -322,6 +331,7 @@ class Function(Blueprint):
                 Environment=self.environment(),
                 Handler=variables["Handler"],
                 KmsKeyArn=variables["KmsKeyArn"] or NoValue,
+                Layers=self.layer_arns(),
                 MemorySize=variables["MemorySize"],
                 Role=self.role_arn,
                 Runtime=variables["Runtime"],

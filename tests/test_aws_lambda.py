@@ -64,6 +64,17 @@ class TestBlueprint(BlueprintTestCase):
         blueprint.create_template()
         self.assertRenderedBlueprint(blueprint)
 
+    def test_create_template_with_layer_arns(self):
+        blueprint = self.create_blueprint(
+            'test_aws_lambda_Function_with_layer_arns'
+        )
+        self.common_variables["LayerArns"] = [
+            "arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python38:19",
+        ]
+        blueprint.resolve_variables(self.generate_variables())
+        blueprint.create_template()
+        self.assertRenderedBlueprint(blueprint)
+
     def test_create_template_with_alias_full_name_arn(self):
         blueprint = self.create_blueprint(
             'test_aws_lambda_Function_with_alias_full_name_arn'
