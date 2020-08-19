@@ -118,3 +118,6 @@ dev.env
 
 # Ignore blueprint fixture results
 *.json-result
+
+# Ignore semaphore files for make targets
+.build
