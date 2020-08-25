@@ -1,8 +1,9 @@
-version: 2
+---
+version: 2.1
 
 defaults: &defaults
   docker:
-    - image: circleci/python:2.7
+    - image: library/docker:latest
 
 workflows:
   version: 2
@@ -16,13 +17,34 @@ jobs:
     << : *defaults
 
     steps:
+      - run: apk --update add git
       - checkout
-      - run: sudo pip install flake8 codecov pep8-naming
-      - run: sudo make lint
+      - setup_remote_docker
+      - build
+      - docker_run:
+          cmd: flake8 stacker_blueprints
 
   test-unit:
     << : *defaults
 
     steps:
+      - run: apk --update add git
       - checkout
-      - run: sudo make test
+      - setup_remote_docker
+      - build
+      - docker_run:
+          cmd: python setup.py test
+
+commands:
+  build:
+    description: Build the docker image to use in later steps.
+    steps:
+      - run: docker build --tag localhost/stacker_blueprints:latest .
+  docker_run:
+    description: Run a command using the image from the build command.
+    parameters:
+      cmd:
+        description: The command you'd like to run.
+        type: string
+    steps:
+      - run: docker run -it localhost/stacker_blueprints:latest <<parameters.cmd>>
