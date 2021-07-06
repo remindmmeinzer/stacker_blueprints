@@ -58,7 +58,7 @@
                     "Ref": "SubnetGroup"
                 },
                 "DatabaseName": "db",
-                "EnableIAMDatabaseAuthentication": "false",
+                "EnableIAMDatabaseAuthentication": "true",
                 "Engine": "aurora",
                 "EngineVersion": "9.3.10",
                 "MasterUserPassword": {
@@ -78,7 +78,7 @@
                 "Tags": [
                     {
                         "Key": "Name",
-                        "Value": "rds_aurora_base_cluster"
+                        "Value": "rds_aurora_base_cluster_iam_access"
                     }
                 ],
                 "VpcSecurityGroupIds": [
@@ -91,14 +91,14 @@
         },
         "SecurityGroup": {
             "Properties": {
-                "GroupDescription": "rds_aurora_base_cluster RDS security group",
+                "GroupDescription": "rds_aurora_base_cluster_iam_access RDS security group",
                 "VpcId": "vpc-1234"
             },
             "Type": "AWS::EC2::SecurityGroup"
         },
         "SubnetGroup": {
             "Properties": {
-                "DBSubnetGroupDescription": "rds_aurora_base_cluster VPC subnet group.",
+                "DBSubnetGroupDescription": "rds_aurora_base_cluster_iam_access VPC subnet group.",
                 "SubnetIds": [
                     "subnet-1234",
                     "subnet-4321"

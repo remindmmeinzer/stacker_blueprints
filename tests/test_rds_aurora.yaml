@@ -24,6 +24,18 @@ stacks:
       MasterUserPassword: unused-password
       DatabaseName: db
       SnapshotIdentifier: arn:aws:rds:us-east-1:0123456788901:cluster-snapshot:rds:my-snapshot
+  - name: rds_aurora_base_cluster_iam_access
+    class_path: stacker_blueprints.rds.aurora.AuroraCluster
+    variables:
+      EnableIAMDatabaseAuthentication: true
+      Engine: aurora
+      DBFamily: postgres9.3
+      EngineVersion: 9.3.10
+      Subnets: subnet-1234,subnet-4321
+      VpcId: vpc-1234
+      MasterUser: root
+      MasterUserPassword: password
+      DatabaseName: db
   - name: rds_aurora_mysql_cluster
     class_path: stacker_blueprints.rds.aurora.AuroraMysqlCluster
     variables:

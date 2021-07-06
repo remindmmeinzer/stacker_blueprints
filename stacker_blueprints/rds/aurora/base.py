@@ -54,6 +54,11 @@ class Cluster(Blueprint):
             "type": str,
             "description": "A comma separated list of subnet ids."
         },
+        "EnableIAMDatabaseAuthentication": {
+            "type": bool,
+            "description": "Whether or not to permit IAM db access.",
+            "default": False,
+        },
         "EngineVersion": {
             "type": str,
             "description": "Database engine version for the RDS Instance.",
@@ -269,6 +274,9 @@ class Cluster(Blueprint):
             BackupRetentionPeriod=variables["BackupRetentionPeriod"],
             DBClusterParameterGroupName=parameter_group,
             DBSubnetGroupName=Ref(SUBNET_GROUP),
+            EnableIAMDatabaseAuthentication=variables[
+                "EnableIAMDatabaseAuthentication"
+            ],
             Engine=self.engine() or variables["Engine"],
             EngineVersion=engine_version,
             MasterUsername=self.get_master_user(),

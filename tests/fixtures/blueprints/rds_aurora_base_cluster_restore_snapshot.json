@@ -4,105 +4,106 @@
             "Value": {
                 "Ref": "DBCluster"
             }
-        }, 
+        },
         "MasterEndpoint": {
             "Value": {
                 "Fn::GetAtt": [
-                    "DBCluster", 
+                    "DBCluster",
                     "Endpoint.Address"
                 ]
             }
-        }, 
+        },
         "Port": {
             "Value": {
                 "Fn::GetAtt": [
-                    "DBCluster", 
+                    "DBCluster",
                     "Endpoint.Port"
                 ]
             }
-        }, 
+        },
         "ReadEndpoint": {
             "Value": {
                 "Fn::GetAtt": [
-                    "DBCluster", 
+                    "DBCluster",
                     "ReadEndpoint.Address"
                 ]
             }
-        }, 
+        },
         "SecurityGroup": {
             "Value": {
                 "Ref": "SecurityGroup"
             }
-        }, 
+        },
         "SubnetGroup": {
             "Value": {
                 "Ref": "SubnetGroup"
             }
         }
-    }, 
+    },
     "Parameters": {
         "MasterUserPassword": {
-            "Default": "", 
-            "Description": "Master user password.", 
-            "NoEcho": true, 
+            "Default": "",
+            "Description": "Master user password.",
+            "NoEcho": true,
             "Type": "String"
         }
-    }, 
+    },
     "Resources": {
         "DBCluster": {
-            "DeletionPolicy": "Snapshot", 
+            "DeletionPolicy": "Snapshot",
             "Properties": {
-                "BackupRetentionPeriod": 7, 
-                "DBClusterParameterGroupName": "default.postgres9.3", 
+                "BackupRetentionPeriod": 7,
+                "DBClusterParameterGroupName": "default.postgres9.3",
                 "DBSubnetGroupName": {
                     "Ref": "SubnetGroup"
-                }, 
-                "DatabaseName": "db", 
-                "Engine": "aurora", 
-                "EngineVersion": "9.3.10", 
+                },
+                "DatabaseName": "db",
+                "EnableIAMDatabaseAuthentication": "false",
+                "Engine": "aurora",
+                "EngineVersion": "9.3.10",
                 "MasterUserPassword": {
                     "Ref": "AWS::NoValue"
-                }, 
+                },
                 "MasterUsername": {
                     "Ref": "AWS::NoValue"
-                }, 
-                "Port": 3306, 
-                "PreferredBackupWindow": "12:00-13:00", 
-                "PreferredMaintenanceWindow": "Sun:11:00-Sun:12:00", 
+                },
+                "Port": 3306,
+                "PreferredBackupWindow": "12:00-13:00",
+                "PreferredMaintenanceWindow": "Sun:11:00-Sun:12:00",
                 "ReplicationSourceIdentifier": {
                     "Ref": "AWS::NoValue"
-                }, 
-                "SnapshotIdentifier": "arn:aws:rds:us-east-1:0123456788901:cluster-snapshot:rds:my-snapshot", 
-                "StorageEncrypted": "true", 
+                },
+                "SnapshotIdentifier": "arn:aws:rds:us-east-1:0123456788901:cluster-snapshot:rds:my-snapshot",
+                "StorageEncrypted": "true",
                 "Tags": [
                     {
-                        "Key": "Name", 
+                        "Key": "Name",
                         "Value": "rds_aurora_base_cluster_restore_snapshot"
                     }
-                ], 
+                ],
                 "VpcSecurityGroupIds": [
                     {
                         "Ref": "SecurityGroup"
                     }
                 ]
-            }, 
+            },
             "Type": "AWS::RDS::DBCluster"
-        }, 
+        },
         "SecurityGroup": {
             "Properties": {
-                "GroupDescription": "rds_aurora_base_cluster_restore_snapshot RDS security group", 
+                "GroupDescription": "rds_aurora_base_cluster_restore_snapshot RDS security group",
                 "VpcId": "vpc-1234"
-            }, 
+            },
             "Type": "AWS::EC2::SecurityGroup"
-        }, 
+        },
         "SubnetGroup": {
             "Properties": {
-                "DBSubnetGroupDescription": "rds_aurora_base_cluster_restore_snapshot VPC subnet group.", 
+                "DBSubnetGroupDescription": "rds_aurora_base_cluster_restore_snapshot VPC subnet group.",
                 "SubnetIds": [
-                    "subnet-1234", 
+                    "subnet-1234",
                     "subnet-4321"
                 ]
-            }, 
+            },
             "Type": "AWS::RDS::DBSubnetGroup"
         }
     }

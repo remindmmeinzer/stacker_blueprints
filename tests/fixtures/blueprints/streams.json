@@ -3,30 +3,30 @@
         "Stream1StreamArn": {
             "Value": {
                 "Fn::GetAtt": [
-                    "Stream1", 
+                    "Stream1",
                     "Arn"
                 ]
             }
-        }, 
+        },
         "Stream1StreamId": {
             "Value": {
                 "Ref": "Stream1"
             }
-        }, 
+        },
         "Stream2StreamArn": {
             "Value": {
                 "Fn::GetAtt": [
-                    "Stream2", 
+                    "Stream2",
                     "Arn"
                 ]
             }
-        }, 
+        },
         "Stream2StreamId": {
             "Value": {
                 "Ref": "Stream2"
             }
         }
-    }, 
+    },
     "Resources": {
         "ReadPolicy": {
             "Properties": {
@@ -34,24 +34,24 @@
                     "Statement": [
                         {
                             "Action": [
-                                "kinesis:DescribeStream", 
+                                "kinesis:DescribeStream",
                                 "kinesis:Get*"
-                            ], 
-                            "Effect": "Allow", 
+                            ],
+                            "Effect": "Allow",
                             "Resource": [
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream2"
                                             }
                                         }
                                     ]
-                                }, 
+                                },
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream1"
@@ -60,52 +60,52 @@
                                     ]
                                 }
                             ]
-                        }, 
+                        },
                         {
                             "Action": [
                                 "kinesis:ListStreams"
-                            ], 
-                            "Effect": "Allow", 
+                            ],
+                            "Effect": "Allow",
                             "Resource": [
                                 "*"
                             ]
                         }
                     ]
-                }, 
+                },
                 "PolicyName": {
                     "Fn::Sub": "${AWS::StackName}ReadPolicy"
-                }, 
+                },
                 "Roles": [
-                    "Role1", 
+                    "Role1",
                     "Role2"
                 ]
-            }, 
+            },
             "Type": "AWS::IAM::Policy"
-        }, 
+        },
         "ReadWritePolicy": {
             "Properties": {
                 "PolicyDocument": {
                     "Statement": [
                         {
                             "Action": [
-                                "kinesis:DescribeStream", 
+                                "kinesis:DescribeStream",
                                 "kinesis:Get*"
-                            ], 
-                            "Effect": "Allow", 
+                            ],
+                            "Effect": "Allow",
                             "Resource": [
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream2"
                                             }
                                         }
                                     ]
-                                }, 
+                                },
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream1"
@@ -114,36 +114,36 @@
                                     ]
                                 }
                             ]
-                        }, 
+                        },
                         {
                             "Action": [
                                 "kinesis:ListStreams"
-                            ], 
-                            "Effect": "Allow", 
+                            ],
+                            "Effect": "Allow",
                             "Resource": [
                                 "*"
                             ]
-                        }, 
+                        },
                         {
                             "Action": [
-                                "kinesis:PutRecord", 
+                                "kinesis:PutRecord",
                                 "kinesis:PutRecords"
-                            ], 
-                            "Effect": "Allow", 
+                            ],
+                            "Effect": "Allow",
                             "Resource": [
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream2"
                                             }
                                         }
                                     ]
-                                }, 
+                                },
                                 {
                                     "Fn::Sub": [
-                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}", 
+                                        "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${Stream}",
                                         {
                                             "Stream": {
                                                 "Ref": "Stream1"
@@ -154,29 +154,32 @@
                             ]
                         }
                     ]
-                }, 
+                },
                 "PolicyName": {
                     "Fn::Sub": "${AWS::StackName}ReadWritePolicy"
-                }, 
+                },
                 "Roles": [
-                    "Role3", 
+                    "Role3",
                     "Role4"
                 ]
-            }, 
+            },
             "Type": "AWS::IAM::Policy"
-        }, 
+        },
         "Stream1": {
             "Properties": {
-                "RetentionPeriodHours": 12, 
-                "ShardCount": 4, 
+                "RetentionPeriodHours": 12,
+                "ShardCount": 4,
                 "StreamEncryption": {
-                    "EncryptionType": "KMS", 
+                    "EncryptionType": "KMS",
                     "KeyId": "kms-1203123"
                 }
-            }, 
+            },
             "Type": "AWS::Kinesis::Stream"
-        }, 
+        },
         "Stream2": {
+            "Properties": {
+                "ShardCount": 4
+            },
             "Type": "AWS::Kinesis::Stream"
         }
     }
