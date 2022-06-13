@@ -80,6 +80,15 @@ class BaseReplicationGroup(Blueprint):
                            "be at least 2.",
             "default": 2,
         },
+        "NumNodeGroups": {
+            "type": int,
+            "description": "An optional parameter that specifies the number "
+                            "of node groups (shards) for this Redis (cluster "
+                            "mode enabled) replication group. For Redis "
+                            "(cluster mode disabled) either omit this "
+                            "parameter or set it to 1.",
+            "default": 1,
+        },
         "Port": {
             "type": int,
             "description": "The port to run the cluster on.",
@@ -233,6 +242,7 @@ class BaseReplicationGroup(Blueprint):
                 CacheParameterGroupName=Ref(PARAMETER_GROUP),
                 CacheSubnetGroupName=Ref(SUBNET_GROUP),
                 NumCacheClusters=variables["NumCacheClusters"],
+                NumNodeGroups=variables["NumNodeGroups"],
                 Engine=self.engine(),
                 EngineVersion=variables["EngineVersion"],
                 NotificationTopicArn=notification_topic_arn,
